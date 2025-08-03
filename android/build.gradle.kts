@@ -1,3 +1,4 @@
+import com.android.build.gradle.LibraryExtension
 allprojects {
     repositories {
         google()
@@ -14,6 +15,17 @@ subprojects {
 }
 subprojects {
     project.evaluationDependsOn(":app")
+}
+
+// Ensure namespace is set for isar_flutter_libs plugin on AGP 8+
+subprojects {
+    if (project.name == "isar_flutter_libs") {
+        plugins.withId("com.android.library") {
+            extensions.configure<com.android.build.gradle.LibraryExtension>("android") {
+                namespace = "dev.isar.isar_flutter_libs"
+            }
+        }
+    }
 }
 
 tasks.register<Delete>("clean") {
