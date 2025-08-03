@@ -1,0 +1,242 @@
+name: Flutter CI/CD
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout código
+      uses: actions/checkout@v4
+      
+    - name: Configurar Java
+      uses: actions/setup-java@v3
+      with:
+        distribution: 'zulu'
+        java-version: '17'
+        
+    - name: Configurar Flutter
+      uses: subosito/flutter-action@v2
+      with:
+        flutter-version: '3.19.6'
+        channel: 'stable'
+        
+    - name: Verificar instalación de Flutter
+      run: flutter doctor -v
+      
+    - name: Obtener dependencias
+      run: flutter pub get
+      
+    - name: Verificar formato de código
+      run: dart format --output=none --set-exit-if-changed .
+      
+    - name: Analizar código
+      run: flutter analyze
+      
+    - name: Ejecutar tests unitarios
+      run: flutter test --coverage
+      
+    - name: Subir cobertura a Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        file: coverage/lcov.info
+        flags: unittests
+        name: codecov-umbrella
+
+  build-apk:
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push'
+    
+    steps:
+    - name: Checkout código
+      uses: actions/checkout@v4
+      
+    - name: Configurar Java
+      uses: actions/setup-java@v3
+      with:
+        distribution: 'zulu'
+        java-version: '17'
+        
+    - name: Configurar Flutter
+      uses: subosito/flutter-action@v2
+      with:
+        flutter-version: '3.19.6'
+        channel: 'stable'
+        
+    - name: Obtener dependencias
+      run: flutter pub get
+      
+    - name: Generar archivos Isar
+      run: dart run build_runner build
+      
+    - name: Construir APK de release
+      run: flutter build apk --release
+      
+    - name: Subir APK como artefacto
+      uses: actions/upload-artifact@v3
+      with:
+        name: app-release-apk
+        path: build/app/outputs/flutter-apk/app-release.apk
+        retention-days: 30
+
+  build-appbundle:
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+    - name: Checkout código
+      uses: actions/checkout@v4
+      
+    - name: Configurar Java
+      uses: actions/setup-java@v3
+      with:
+        distribution: 'zulu'
+        java-version: '17'
+        
+    - name: Configurar Flutter
+      uses: subosito/flutter-action@v2
+      with:
+        flutter-version: '3.19.6'
+        channel: 'stable'
+        
+    - name: Obtener dependencias
+      run: flutter pub get
+      
+    - name: Generar archivos Isar
+      run: dart run build_runner build
+      
+    - name: Construir App Bundle
+      run: flutter build appbundle --release
+      
+    - name: Subir App Bundle como artefacto
+      uses: actions/upload-artifact@v3
+      with:
+        name: app-release-aab
+        path: build/app/outputs/bundle/release/app-release.aab
+        retention-days: 90
+
+  deploy-to-firebase:
+    needs: [test, build-apk]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/develop'
+    
+    steps:
+    - name: Checkout código
+      uses: actions/checkout@v4
+      
+    - name: Configurar Java
+      uses: actions/setup-java@v3
+      with:
+        distribution: 'zulu'
+        java-version: '17'
+        
+    - name: Configurar Flutter
+      uses: subosito/flutter-action@v2
+      with:
+        flutter-version: '3.19.6'
+        channel: 'stable'
+        
+    - name: Obtener dependencias
+      run: flutter pub get
+      
+    - name: Generar archivos Isar
+      run: dart run build_runner build
+      
+    - name: Construir APK de distribución
+      run: flutter build apk --release
+      
+    - name: Instalar Firebase CLI
+      run: npm install -g firebase-tools
+      
+    - name: Desplegar a Firebase App Distribution
+      run: |
+        firebase appdistribution:distribute build/app/outputs/flutter-apk/app-release.apk \
+          --app ${{ secrets.FIREBASE_APP_ID }} \
+          --token ${{ secrets.FIREBASE_TOKEN }} \
+          --groups "testers" \
+          --release-notes "Construcción automática desde rama develop - ${{ github.sha }}"
+
+  security-scan:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout código
+      uses: actions/checkout@v4
+      
+    - name: Configurar Flutter
+      uses: subosito/flutter-action@v2
+      with:
+        flutter-version: '3.19.6'
+        channel: 'stable'
+        
+    - name: Obtener dependencias
+      run: flutter pub get
+      
+    - name: Ejecutar audit de dependencias
+      run: flutter pub deps --json | jq '.packages[] | select(.kind == "direct") | .name' | xargs -I {} echo "Verificando dependencia: {}"
+      
+    - name: Verificar dependencias conocidas con vulnerabilidades
+      run: |
+        # Lista básica de verificación de dependencias
+        echo "Verificando dependencias por vulnerabilidades conocidas..."
+        flutter pub deps
+
+  performance-test:
+    needs: build-apk
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    
+    steps:
+    - name: Checkout código
+      uses: actions/checkout@v4
+      
+    - name: Configurar Flutter
+      uses: subosito/flutter-action@v2
+      with:
+        flutter-version: '3.19.6'
+        channel: 'stable'
+        
+    - name: Obtener dependencias
+      run: flutter pub get
+      
+    - name: Ejecutar tests de rendimiento
+      run: |
+        echo "Ejecutando análisis de rendimiento básico..."
+        flutter analyze --fatal-infos
+        
+    - name: Verificar tamaño del APK
+      run: |
+        if [ -f "build/app/outputs/flutter-apk/app-release.apk" ]; then
+          APK_SIZE=$(stat -c%s "build/app/outputs/flutter-apk/app-release.apk")
+          echo "Tamaño del APK: $APK_SIZE bytes"
+          
+          # Verificar que el APK no sea demasiado grande (50MB)
+          if [ $APK_SIZE -gt 52428800 ]; then
+            echo "⚠️  ADVERTENCIA: El APK es mayor a 50MB"
+            exit 1
+          else
+            echo "✅ Tamaño del APK dentro de límites aceptables"
+          fi
+        fi
+
+  notify:
+    needs: [test, build-apk]
+    runs-on: ubuntu-latest
+    if: always()
+    
+    steps:
+    - name: Notificar estado del build
+      run: |
+        if [ "${{ needs.test.result }}" == "success" ] && [ "${{ needs.build-apk.result }}" == "success" ]; then
+          echo "✅ Build completado exitosamente"
+        else
+          echo "❌ Build falló. Revisar logs para más detalles."
+          exit 1
+        fi

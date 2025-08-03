@@ -41,8 +41,13 @@ dependencies:
   # Almacenamiento local y seguro
   hive: ^2.2.3
   hive_flutter: ^1.1.0
+  isar: ^3.1.0+1
+  isar_flutter_libs: ^3.1.0+1
   flutter_secure_storage: ^8.0.0
   path_provider: ^2.0.11
+  
+  # Gestión de cache
+  flutter_cache_manager: ^3.3.1
 
   # Gestión de estado (BLoC)
   flutter_bloc: ^8.1.1
@@ -51,6 +56,8 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^5.0.0
+  isar_generator: ^3.1.0+1
+  build_runner: ^2.4.13
 
 flutter:
   uses-material-design: true
