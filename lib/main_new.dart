@@ -2,15 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:go_router/go_router.dart';
 
 import 'core/theme.dart';
 import 'core/constants.dart';
+import 'core/user_session.dart';
 import 'l10n/app_localizations.dart';
 import 'shared/models/server_model.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
+  // Inicializar UserSession primero
+  await UserSession.init();
   
   // Inicializar Hive
   await Hive.initFlutter();
@@ -35,30 +38,20 @@ void main() async {
 class MyApp extends StatelessWidget {
   MyApp({super.key});
 
-  final GoRouter _router = GoRouter(
-    initialLocation: '/splash',
-    routes: [
-      GoRoute(
-        path: '/splash',
-        builder: (context, state) => const SplashScreen(),
-      ),
-      GoRoute(
-        path: '/login',
-        builder: (context, state) => const LoginScreen(),
-      ),
-      GoRoute(
-        path: '/home',
-        builder: (context, state) => const HomeScreen(),
-      ),
-    ],
-  );
-
   @override
   Widget build(BuildContext context) {
-    return MaterialApp.router(
+    // Detectar si hay perfil activo previamente
+    final String? activeProfileId = UserSession.getActiveProfile;
+    final String initialRoute = activeProfileId == null ? '/login' : '/tabHome';
+    
+    return MaterialApp(
       title: 'Reproductor IPTV',
       theme: AppTheme.darkTheme,
-      routerConfig: _router,
+      initialRoute: initialRoute,
+      routes: {
+        '/login': (context) => const LoginScreen(),
+        '/tabHome': (context) => const TabHomeScreen(),
+      },
       localizationsDelegates: const [
         AppLocalizations.delegate,
         GlobalMaterialLocalizations.delegate,
@@ -74,63 +67,7 @@ class MyApp extends StatelessWidget {
   }
 }
 
-// Pantalla de splash temporal
-class SplashScreen extends StatefulWidget {
-  const SplashScreen({super.key});
-
-  @override
-  State<SplashScreen> createState() => _SplashScreenState();
-}
-
-class _SplashScreenState extends State<SplashScreen> {
-  @override
-  void initState() {
-    super.initState();
-    _navigateToLogin();
-  }
-
-  _navigateToLogin() {
-    Future.delayed(const Duration(seconds: 2), () {
-      if (mounted) {
-        context.go('/login');
-      }
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppTheme.backgroundColor,
-      body: const Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.tv,
-              size: 100,
-              color: AppTheme.primaryColor,
-            ),
-            SizedBox(height: 20),
-            Text(
-              'Reproductor IPTV',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-              ),
-            ),
-            SizedBox(height: 20),
-            CircularProgressIndicator(
-              color: AppTheme.primaryColor,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// Pantalla de login temporal
+// Pantalla de login con gestión de sesión
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
@@ -306,12 +243,20 @@ class _LoginScreenState extends State<LoginScreen> {
 
       // Validación básica de credenciales
       if (username.length >= 3 && password.length >= 3) {
+        // Generar un ID de perfil único
+        final profileId = '${username}_${DateTime.now().millisecondsSinceEpoch}';
+        
+        // Guardar el perfil activo
+        await UserSession.setActiveProfile(profileId);
+        
         if (mounted) {
           _showSuccessMessage('¡Conexión exitosa a $serverUrl!');
           Future.delayed(const Duration(seconds: 1), () {
             if (mounted) {
-              Navigator.of(context).pushReplacement(
-                MaterialPageRoute(builder: (context) => const HomeScreen()),
+              Navigator.pushNamedAndRemoveUntil(
+                context,
+                '/tabHome',
+                (route) => false,
               );
             }
           });
@@ -345,10 +290,15 @@ class _LoginScreenState extends State<LoginScreen> {
               child: const Text('Cancelar'),
             ),
             ElevatedButton(
-              onPressed: () {
+              onPressed: () async {
                 Navigator.of(context).pop();
-                Navigator.of(context).pushReplacement(
-                  MaterialPageRoute(builder: (context) => const HomeScreen()),
+                // Generar ID de perfil demo
+                final demoProfileId = 'demo_${DateTime.now().millisecondsSinceEpoch}';
+                await UserSession.setActiveProfile(demoProfileId);
+                Navigator.pushNamedAndRemoveUntil(
+                  context,
+                  '/tabHome',
+                  (route) => false,
                 );
               },
               child: const Text('Continuar'),
@@ -382,9 +332,26 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 }
 
-// Páginas simples para navegación
-class LiveChannelsPage extends StatelessWidget {
-  const LiveChannelsPage({super.key});
+// Página de Canales en Vivo
+class ChannelsTab extends StatefulWidget {
+  const ChannelsTab({super.key});
+
+  @override
+  State<ChannelsTab> createState() => _ChannelsTabState();
+}
+
+class _ChannelsTabState extends State<ChannelsTab> {
+  @override
+  void initState() {
+    super.initState();
+    // Cargar lista desde DB o fetch API si stale
+    _loadChannels();
+  }
+
+  void _loadChannels() {
+    // TODO: Implementar carga de canales
+    // Por ahora mostrar contenido placeholder
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -410,8 +377,26 @@ class LiveChannelsPage extends StatelessWidget {
   }
 }
 
-class MoviesPage extends StatelessWidget {
-  const MoviesPage({super.key});
+// Página de Películas (VOD)
+class VodsTab extends StatefulWidget {
+  const VodsTab({super.key});
+
+  @override
+  State<VodsTab> createState() => _VodsTabState();
+}
+
+class _VodsTabState extends State<VodsTab> {
+  @override
+  void initState() {
+    super.initState();
+    // Cargar lista desde DB o fetch API si stale
+    _loadMovies();
+  }
+
+  void _loadMovies() {
+    // TODO: Implementar carga de películas
+    // Por ahora mostrar contenido placeholder
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -437,8 +422,26 @@ class MoviesPage extends StatelessWidget {
   }
 }
 
-class SeriesPage extends StatelessWidget {
-  const SeriesPage({super.key});
+// Página de Series
+class SeriesTab extends StatefulWidget {
+  const SeriesTab({super.key});
+
+  @override
+  State<SeriesTab> createState() => _SeriesTabState();
+}
+
+class _SeriesTabState extends State<SeriesTab> {
+  @override
+  void initState() {
+    super.initState();
+    // Cargar lista desde DB o fetch API si stale
+    _loadSeries();
+  }
+
+  void _loadSeries() {
+    // TODO: Implementar carga de series
+    // Por ahora mostrar contenido placeholder
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -464,77 +467,21 @@ class SeriesPage extends StatelessWidget {
   }
 }
 
-class FavoritesPage extends StatelessWidget {
-  const FavoritesPage({super.key});
+// TabHomeScreen: Scaffold con BottomNavigation usando IndexedStack
+class TabHomeScreen extends StatefulWidget {
+  const TabHomeScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return const Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.favorite, size: 64, color: AppTheme.primaryColor),
-          SizedBox(height: 16),
-          Text(
-            'Favoritos',
-            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-          ),
-          SizedBox(height: 8),
-          Text(
-            'Aquí se mostrarán tus contenidos favoritos',
-            textAlign: TextAlign.center,
-            style: TextStyle(color: Colors.grey),
-          ),
-        ],
-      ),
-    );
-  }
+  State<TabHomeScreen> createState() => _TabHomeState();
 }
 
-class SettingsPage extends StatelessWidget {
-  const SettingsPage({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return const Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.settings, size: 64, color: AppTheme.primaryColor),
-          SizedBox(height: 16),
-          Text(
-            'Ajustes',
-            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-          ),
-          SizedBox(height: 8),
-          Text(
-            'Aquí se mostrarán las configuraciones de la aplicación',
-            textAlign: TextAlign.center,
-            style: TextStyle(color: Colors.grey),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// Pantalla principal con navegación
-class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
-
-  @override
-  State<HomeScreen> createState() => _HomeScreenState();
-}
-
-class _HomeScreenState extends State<HomeScreen> {
-  int _currentIndex = 0;
-
-  final List<Widget> _pages = const [
-    LiveChannelsPage(),
-    MoviesPage(),
-    SeriesPage(),
-    FavoritesPage(),
-    SettingsPage(),
+class _TabHomeState extends State<TabHomeScreen> {
+  int currentIndex = 0;
+  
+  final List<Widget> tabs = const [
+    ChannelsTab(),
+    VodsTab(), 
+    SeriesTab(),
   ];
 
   @override
@@ -542,20 +489,38 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Reproductor IPTV'),
+        actions: [
+          PopupMenuButton<String>(
+            onSelected: (value) {
+              if (value == 'logout') {
+                _handleLogout();
+              }
+            },
+            itemBuilder: (BuildContext context) => [
+              const PopupMenuItem<String>(
+                value: 'logout',
+                child: Row(
+                  children: [
+                    Icon(Icons.logout),
+                    SizedBox(width: 8),
+                    Text('Cerrar sesión'),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
-      body: _pages[_currentIndex],
+      body: IndexedStack(
+        index: currentIndex,
+        children: tabs,
+      ),
       bottomNavigationBar: BottomNavigationBar(
-        type: BottomNavigationBarType.fixed,
-        currentIndex: _currentIndex,
-        onTap: (index) {
-          setState(() {
-            _currentIndex = index;
-          });
-        },
+        currentIndex: currentIndex,
         items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.live_tv),
-            label: 'En Vivo',
+            label: 'Canales',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.movie),
@@ -565,16 +530,43 @@ class _HomeScreenState extends State<HomeScreen> {
             icon: Icon(Icons.tv),
             label: 'Series',
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.favorite),
-            label: 'Favoritos',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.settings),
-            label: 'Ajustes',
-          ),
         ],
+        onTap: (idx) => setState(() => currentIndex = idx),
       ),
     );
+  }
+
+  /// Manejar cierre de sesión
+  Future<void> _handleLogout() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Cerrar sesión'),
+          content: const Text('¿Estás seguro de que quieres cerrar sesión?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Cancelar'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('Cerrar sesión'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmed == true) {
+      await UserSession.clearSession();
+      if (mounted) {
+        Navigator.pushNamedAndRemoveUntil(
+          context,
+          '/login',
+          (route) => false,
+        );
+      }
+    }
   }
 }

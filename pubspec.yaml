@@ -46,6 +46,9 @@ dependencies:
 
   # Gestión de estado (BLoC)
   flutter_bloc: ^8.1.1
+  
+  # Navegación
+  go_router: ^14.7.0
 
 dev_dependencies:
   flutter_test:
