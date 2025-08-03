@@ -28,4 +28,42 @@ class UserSession {
   
   /// Obtener perfil activo
   static String? get getActiveProfile => activeProfileId;
+  
+  /// Guardar datos del perfil
+  static Future<void> saveProfileData(String profileId, Map<String, dynamic> profileData) async {
+    final profileKey = 'profile_$profileId';
+    final profileDataJson = profileData.map((key, value) => MapEntry(key, value.toString()));
+    await _prefs.setString(profileKey, profileDataJson.toString());
+  }
+  
+  /// Obtener datos del perfil
+  static Map<String, dynamic>? getProfileData(String profileId) {
+    final profileKey = 'profile_$profileId';
+    final profileDataString = _prefs.getString(profileKey);
+    if (profileDataString != null) {
+      // Aquí podrías implementar parsing JSON más sofisticado
+      return {'raw': profileDataString};
+    }
+    return null;
+  }
+  
+  /// Obtener lista de perfiles guardados
+  static List<String> getSavedProfiles() {
+    final keys = _prefs.getKeys();
+    return keys
+        .where((key) => key.startsWith('profile_'))
+        .map((key) => key.substring(8)) // Remover 'profile_' prefix
+        .toList();
+  }
+  
+  /// Eliminar perfil específico
+  static Future<void> removeProfile(String profileId) async {
+    final profileKey = 'profile_$profileId';
+    await _prefs.remove(profileKey);
+    
+    // Si era el perfil activo, limpiar sesión
+    if (activeProfileId == profileId) {
+      await clearSession();
+    }
+  }
 }

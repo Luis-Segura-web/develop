@@ -246,6 +246,14 @@ class _LoginScreenState extends State<LoginScreen> {
         // Generar un ID de perfil único
         final profileId = '${username}_${DateTime.now().millisecondsSinceEpoch}';
         
+        // Guardar datos del perfil
+        final profileData = {
+          'username': username,
+          'serverUrl': serverUrl,
+          'loginTime': DateTime.now().toIso8601String(),
+        };
+        await UserSession.saveProfileData(profileId, profileData);
+        
         // Guardar el perfil activo
         await UserSession.setActiveProfile(profileId);
         
@@ -294,7 +302,17 @@ class _LoginScreenState extends State<LoginScreen> {
                 Navigator.of(context).pop();
                 // Generar ID de perfil demo
                 final demoProfileId = 'demo_${DateTime.now().millisecondsSinceEpoch}';
+                
+                // Guardar datos del perfil demo
+                final demoProfileData = {
+                  'username': 'demo',
+                  'serverUrl': 'demo.server.com',
+                  'loginTime': DateTime.now().toIso8601String(),
+                  'isDemo': 'true',
+                };
+                await UserSession.saveProfileData(demoProfileId, demoProfileData);
                 await UserSession.setActiveProfile(demoProfileId);
+                
                 Navigator.pushNamedAndRemoveUntil(
                   context,
                   '/tabHome',
@@ -494,9 +512,21 @@ class _TabHomeState extends State<TabHomeScreen> {
             onSelected: (value) {
               if (value == 'logout') {
                 _handleLogout();
+              } else if (value == 'switch_profile') {
+                _showProfileSelector();
               }
             },
             itemBuilder: (BuildContext context) => [
+              const PopupMenuItem<String>(
+                value: 'switch_profile',
+                child: Row(
+                  children: [
+                    Icon(Icons.account_circle),
+                    SizedBox(width: 8),
+                    Text('Cambiar perfil'),
+                  ],
+                ),
+              ),
               const PopupMenuItem<String>(
                 value: 'logout',
                 child: Row(
@@ -565,6 +595,91 @@ class _TabHomeState extends State<TabHomeScreen> {
           context,
           '/login',
           (route) => false,
+        );
+      }
+    }
+  }
+
+  /// Mostrar selector de perfiles
+  void _showProfileSelector() {
+    final savedProfiles = UserSession.getSavedProfiles();
+    final currentProfile = UserSession.getActiveProfile;
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Seleccionar Perfil'),
+          content: savedProfiles.isEmpty
+              ? const Text('No hay perfiles guardados disponibles.')
+              : Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: savedProfiles.map((profileId) {
+                    final isActive = profileId == currentProfile;
+                    return ListTile(
+                      leading: Icon(
+                        Icons.account_circle,
+                        color: isActive ? AppTheme.primaryColor : Colors.grey,
+                      ),
+                      title: Text(
+                        profileId.contains('_') ? profileId.split('_')[0] : profileId,
+                        style: TextStyle(
+                          fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
+                          color: isActive ? AppTheme.primaryColor : null,
+                        ),
+                      ),
+                      subtitle: Text(isActive ? 'Perfil activo' : 'Toca para cambiar'),
+                      onTap: isActive ? null : () => _switchToProfile(profileId),
+                      trailing: isActive
+                          ? const Icon(Icons.check, color: AppTheme.primaryColor)
+                          : null,
+                    );
+                  }).toList(),
+                ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancelar'),
+            ),
+            if (savedProfiles.isNotEmpty)
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  Navigator.pushNamedAndRemoveUntil(
+                    context,
+                    '/login',
+                    (route) => false,
+                  );
+                },
+                child: const Text('Nuevo perfil'),
+              ),
+          ],
+        );
+      },
+    );
+  }
+
+  /// Cambiar a perfil específico
+  Future<void> _switchToProfile(String profileId) async {
+    try {
+      await UserSession.setActiveProfile(profileId);
+      if (mounted) {
+        Navigator.of(context).pop(); // Cerrar diálogo
+        // Recargar la pantalla con el nuevo perfil
+        Navigator.pushNamedAndRemoveUntil(
+          context,
+          '/tabHome',
+          (route) => false,
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        Navigator.of(context).pop(); // Cerrar diálogo
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error al cambiar perfil: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     }
