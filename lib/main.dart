@@ -14,6 +14,13 @@ import 'shared/models/server_model.dart';
 import 'ui/splash_screen.dart';
 import 'ui/login_screen.dart';
 import 'ui/select_profile_screen.dart';
+import 'features/iptv/bloc/content_loader_bloc.dart';
+import 'features/iptv/bloc/content_bloc.dart';
+import 'features/iptv/bloc/content_event.dart';
+import 'features/iptv/bloc/content_state.dart';
+import 'models/channel.dart';
+import 'models/vod_item.dart';
+import 'models/series_item.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -64,21 +71,37 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp.router(
-      title: 'Reproductor IPTV',
-      theme: AppTheme.darkTheme,
-      routerConfig: _router,
-      localizationsDelegates: const [
-        AppLocalizations.delegate,
-        GlobalMaterialLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate,
-        GlobalCupertinoLocalizations.delegate,
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider<ContentLoaderBloc>(
+          create: (context) => ContentLoaderBloc(),
+        ),
+        BlocProvider<ChannelsBloc>(
+          create: (context) => ChannelsBloc(),
+        ),
+        BlocProvider<VodBloc>(
+          create: (context) => VodBloc(),
+        ),
+        BlocProvider<SeriesBloc>(
+          create: (context) => SeriesBloc(),
+        ),
       ],
-      supportedLocales: const [
-        Locale('es', ''),
-      ],
-      locale: const Locale('es', ''),
-      debugShowCheckedModeBanner: false,
+      child: MaterialApp.router(
+        title: 'Reproductor IPTV',
+        theme: AppTheme.darkTheme,
+        routerConfig: _router,
+        localizationsDelegates: const [
+          AppLocalizations.delegate,
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        supportedLocales: const [
+          Locale('es', ''),
+        ],
+        locale: const Locale('es', ''),
+        debugShowCheckedModeBanner: false,
+      ),
     );
   }
 }
@@ -103,7 +126,135 @@ class _TabHomeState extends State<TabHomeScreen> {
   ];
 
   @override
+  void initState() {
+    super.initState();
+    // Cargar contenido inicial al entrar a la pantalla principal
+    _loadInitialContent();
+  }
+
+  /// Cargar contenido inicial desde las APIs
+  void _loadInitialContent() {
+    final contentLoaderBloc = context.read<ContentLoaderBloc>();
+    contentLoaderBloc.add(LoadInitialContent());
+  }
+
+  @override
   Widget build(BuildContext context) {
+    return BlocBuilder<ContentLoaderBloc, ContentState>(
+      builder: (context, state) {
+        if (state is ContentLoading) {
+          return _buildLoadingScreen();
+        } else if (state is ContentError) {
+          return _buildErrorScreen(state.message);
+        } else {
+          return _buildMainScreen();
+        }
+      },
+    );
+  }
+
+  /// Pantalla de carga inicial de contenido
+  Widget _buildLoadingScreen() {
+    return Scaffold(
+      backgroundColor: const Color(0xFF0D1117),
+      body: const Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            CircularProgressIndicator(
+              strokeWidth: 3,
+              color: Colors.blue,
+            ),
+            SizedBox(height: 24),
+            Text(
+              'Cargando contenido...',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 18,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            SizedBox(height: 12),
+            Text(
+              'Esto puede tomar unos minutos',
+              style: TextStyle(
+                color: Colors.white70,
+                fontSize: 14,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Pantalla de error en carga inicial
+  Widget _buildErrorScreen(String message) {
+    return Scaffold(
+      backgroundColor: const Color(0xFF0D1117),
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(
+                Icons.error_outline,
+                size: 80,
+                color: Colors.red,
+              ),
+              const SizedBox(height: 24),
+              const Text(
+                'Error al cargar contenido',
+                style: TextStyle(
+                  fontSize: 24,
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 12),
+              Text(
+                message,
+                style: const TextStyle(
+                  fontSize: 16,
+                  color: Colors.white70,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 32),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  ElevatedButton(
+                    onPressed: () {
+                      context.go('/login');
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.grey.shade600,
+                    ),
+                    child: const Text('Volver'),
+                  ),
+                  ElevatedButton(
+                    onPressed: () {
+                      _loadInitialContent();
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.blue.shade600,
+                    ),
+                    child: const Text('Reintentar'),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Pantalla principal con pestañas
+  Widget _buildMainScreen() {
     return Scaffold(
       appBar: AppBar(
         title: const Text(
@@ -213,12 +364,15 @@ class _TabHomeState extends State<TabHomeScreen> {
   void _refreshCurrentTab() {
     switch (currentIndex) {
       case 0:
+        context.read<ChannelsBloc>().add(RefreshChannels());
         _showMessage('Actualizando canales...');
         break;
       case 1:
+        context.read<VodBloc>().add(RefreshVodItems());
         _showMessage('Actualizando películas...');
         break;
       case 2:
+        context.read<SeriesBloc>().add(RefreshSeriesItems());
         _showMessage('Actualizando series...');
         break;
       case 3:
@@ -302,29 +456,11 @@ class ChannelsTab extends StatefulWidget {
 }
 
 class _ChannelsTabState extends State<ChannelsTab> {
-  bool _isLoading = true;
-  List<Map<String, String>> _channels = [];
-
   @override
   void initState() {
     super.initState();
-    _loadChannels();
-  }
-
-  Future<void> _loadChannels() async {
-    // Simular carga de datos
-    await Future.delayed(const Duration(seconds: 2));
-    
-    if (mounted) {
-      setState(() {
-        _channels = List.generate(20, (index) => {
-          'name': 'Canal ${index + 1}',
-          'logo': 'https://via.placeholder.com/60',
-          'category': index % 3 == 0 ? 'Noticias' : index % 3 == 1 ? 'Entretenimiento' : 'Deportes',
-        });
-        _isLoading = false;
-      });
-    }
+    // Cargar canales al inicializar el tab
+    context.read<ChannelsBloc>().add(LoadChannels());
   }
 
   @override
@@ -350,32 +486,61 @@ class _ChannelsTabState extends State<ChannelsTab> {
           ),
         ),
         
-        // Cuerpo: ListView.lazy paginada
+        // Cuerpo: ListView con BLoC
         Expanded(
-          child: _isLoading 
-              ? _buildSkeletonList()
-              : _buildChannelsList(),
+          child: BlocBuilder<ChannelsBloc, ContentState>(
+            builder: (context, state) {
+              if (state is ContentLoading) {
+                return _buildSkeletonList();
+              } else if (state is ContentLoaded<Channel>) {
+                return _buildChannelsList(state.items);
+              } else if (state is ContentRefreshing<Channel>) {
+                return _buildChannelsList(state.items, isRefreshing: true);
+              } else if (state is ContentError) {
+                return _buildErrorState(state.message);
+              } else {
+                return _buildEmptyState();
+              }
+            },
+          ),
         ),
       ],
     );
   }
 
-  /// Lista de canales
-  Widget _buildChannelsList() {
+  /// Lista de canales reales
+  Widget _buildChannelsList(List<Channel> channels, {bool isRefreshing = false}) {
+    if (channels.isEmpty) {
+      return _buildEmptyState();
+    }
+
     return RefreshIndicator(
-      onRefresh: _loadChannels,
-      child: ListView.builder(
-        itemCount: _channels.length,
-        itemBuilder: (context, index) {
-          final channel = _channels[index];
-          return _buildChannelTile(channel);
-        },
+      onRefresh: () async {
+        context.read<ChannelsBloc>().add(RefreshChannels());
+      },
+      child: Stack(
+        children: [
+          ListView.builder(
+            itemCount: channels.length,
+            itemBuilder: (context, index) {
+              final channel = channels[index];
+              return _buildChannelTile(channel);
+            },
+          ),
+          if (isRefreshing)
+            const Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              child: LinearProgressIndicator(),
+            ),
+        ],
       ),
     );
   }
 
-  /// Tile de canal con logo, nombre e indicador de en vivo
-  Widget _buildChannelTile(Map<String, String> channel) {
+  /// Tile de canal con datos reales
+  Widget _buildChannelTile(Channel channel) {
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       leading: Container(
@@ -385,14 +550,29 @@ class _ChannelsTabState extends State<ChannelsTab> {
           color: Colors.blue.shade600,
           borderRadius: BorderRadius.circular(30),
         ),
-        child: const Icon(
-          Icons.live_tv,
-          color: Colors.white,
-          size: 30,
-        ),
+        child: channel.streamIcon.isNotEmpty
+            ? ClipRRect(
+                borderRadius: BorderRadius.circular(30),
+                child: Image.network(
+                  channel.streamIcon,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) {
+                    return const Icon(
+                      Icons.live_tv,
+                      color: Colors.white,
+                      size: 30,
+                    );
+                  },
+                ),
+              )
+            : const Icon(
+                Icons.live_tv,
+                color: Colors.white,
+                size: 30,
+              ),
       ),
       title: Text(
-        channel['name']!,
+        channel.name,
         style: const TextStyle(
           color: Colors.white,
           fontSize: 16,
@@ -411,7 +591,7 @@ class _ChannelsTabState extends State<ChannelsTab> {
           ),
           const SizedBox(width: 8),
           Text(
-            'EN VIVO • ${channel['category']}',
+            'EN VIVO • ${channel.streamType.toUpperCase()}',
             style: const TextStyle(
               color: Colors.white54,
               fontSize: 12,
@@ -432,6 +612,79 @@ class _ChannelsTabState extends State<ChannelsTab> {
         ),
       ),
       onTap: () => _playChannel(channel),
+    );
+  }
+
+  /// Estado vacío
+  Widget _buildEmptyState() {
+    return const Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.tv_off,
+            size: 80,
+            color: Colors.white30,
+          ),
+          SizedBox(height: 24),
+          Text(
+            'No hay canales disponibles',
+            style: TextStyle(
+              fontSize: 18,
+              color: Colors.white70,
+            ),
+          ),
+          SizedBox(height: 12),
+          Text(
+            'Intenta refrescar la lista',
+            style: TextStyle(
+              fontSize: 14,
+              color: Colors.white54,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Estado de error
+  Widget _buildErrorState(String message) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(
+            Icons.error_outline,
+            size: 80,
+            color: Colors.red,
+          ),
+          const SizedBox(height: 24),
+          Text(
+            'Error al cargar canales',
+            style: const TextStyle(
+              fontSize: 18,
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            message,
+            style: const TextStyle(
+              fontSize: 14,
+              color: Colors.white70,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 24),
+          ElevatedButton(
+            onPressed: () {
+              context.read<ChannelsBloc>().add(LoadChannels());
+            },
+            child: const Text('Reintentar'),
+          ),
+        ],
+      ),
     );
   }
 
@@ -480,10 +733,10 @@ class _ChannelsTabState extends State<ChannelsTab> {
   }
 
   /// Reproducir canal
-  void _playChannel(Map<String, String> channel) {
+  void _playChannel(Channel channel) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('Reproduciendo ${channel['name']}'),
+        content: Text('Reproduciendo ${channel.name}'),
         backgroundColor: Colors.green,
         behavior: SnackBarBehavior.floating,
       ),
@@ -500,29 +753,11 @@ class VodsTab extends StatefulWidget {
 }
 
 class _VodsTabState extends State<VodsTab> {
-  bool _isLoading = true;
-  List<Map<String, String>> _movies = [];
-
   @override
   void initState() {
     super.initState();
-    _loadMovies();
-  }
-
-  Future<void> _loadMovies() async {
-    await Future.delayed(const Duration(seconds: 2));
-    
-    if (mounted) {
-      setState(() {
-        _movies = List.generate(12, (index) => {
-          'title': 'Película ${index + 1}',
-          'poster': 'https://via.placeholder.com/300x450',
-          'year': '${2020 + (index % 5)}',
-          'genre': index % 3 == 0 ? 'Acción' : index % 3 == 1 ? 'Drama' : 'Comedia',
-        });
-        _isLoading = false;
-      });
-    }
+    // Cargar VOD al inicializar el tab
+    context.read<VodBloc>().add(LoadVodItems());
   }
 
   @override
@@ -550,37 +785,66 @@ class _VodsTabState extends State<VodsTab> {
         
         // Grid de películas
         Expanded(
-          child: _isLoading 
-              ? _buildSkeletonGrid()
-              : _buildMoviesGrid(),
+          child: BlocBuilder<VodBloc, ContentState>(
+            builder: (context, state) {
+              if (state is ContentLoading) {
+                return _buildSkeletonGrid();
+              } else if (state is ContentLoaded<VodItem>) {
+                return _buildMoviesGrid(state.items);
+              } else if (state is ContentRefreshing<VodItem>) {
+                return _buildMoviesGrid(state.items, isRefreshing: true);
+              } else if (state is ContentError) {
+                return _buildErrorState(state.message);
+              } else {
+                return _buildEmptyState();
+              }
+            },
+          ),
         ),
       ],
     );
   }
 
-  /// Grid de películas
-  Widget _buildMoviesGrid() {
+  /// Grid de películas reales
+  Widget _buildMoviesGrid(List<VodItem> movies, {bool isRefreshing = false}) {
+    if (movies.isEmpty) {
+      return _buildEmptyState();
+    }
+
     return RefreshIndicator(
-      onRefresh: _loadMovies,
-      child: GridView.builder(
-        padding: const EdgeInsets.all(16),
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2,
-          childAspectRatio: 0.7, // Ratio 2:3 para posters
-          crossAxisSpacing: 12,
-          mainAxisSpacing: 12,
-        ),
-        itemCount: _movies.length,
-        itemBuilder: (context, index) {
-          final movie = _movies[index];
-          return _buildMovieCard(movie);
-        },
+      onRefresh: () async {
+        context.read<VodBloc>().add(RefreshVodItems());
+      },
+      child: Stack(
+        children: [
+          GridView.builder(
+            padding: const EdgeInsets.all(16),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              childAspectRatio: 0.7, // Ratio 2:3 para posters
+              crossAxisSpacing: 12,
+              mainAxisSpacing: 12,
+            ),
+            itemCount: movies.length,
+            itemBuilder: (context, index) {
+              final movie = movies[index];
+              return _buildMovieCard(movie);
+            },
+          ),
+          if (isRefreshing)
+            const Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              child: LinearProgressIndicator(),
+            ),
+        ],
       ),
     );
   }
 
-  /// Tarjeta de película
-  Widget _buildMovieCard(Map<String, String> movie) {
+  /// Tarjeta de película con datos reales
+  Widget _buildMovieCard(VodItem movie) {
     return Card(
       color: const Color(0xFF161B22),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -600,11 +864,28 @@ class _VodsTabState extends State<VodsTab> {
                     top: Radius.circular(12),
                   ),
                 ),
-                child: const Icon(
-                  Icons.movie,
-                  size: 50,
-                  color: Colors.white,
-                ),
+                child: movie.streamIcon.isNotEmpty
+                    ? ClipRRect(
+                        borderRadius: const BorderRadius.vertical(
+                          top: Radius.circular(12),
+                        ),
+                        child: Image.network(
+                          movie.streamIcon,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) {
+                            return const Icon(
+                              Icons.movie,
+                              size: 50,
+                              color: Colors.white,
+                            );
+                          },
+                        ),
+                      )
+                    : const Icon(
+                        Icons.movie,
+                        size: 50,
+                        color: Colors.white,
+                      ),
               ),
             ),
             
@@ -616,7 +897,7 @@ class _VodsTabState extends State<VodsTab> {
                 children: [
                   // Título (negrita 16sp)
                   Text(
-                    movie['title']!,
+                    movie.name,
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 16,
@@ -628,17 +909,110 @@ class _VodsTabState extends State<VodsTab> {
                   const SizedBox(height: 4),
                   // Año y género
                   Text(
-                    '${movie['year']} • ${movie['genre']}',
+                    '${movie.releaseDate?.year ?? 'N/A'} • ${movie.genre.isNotEmpty ? movie.genre : 'General'}',
                     style: const TextStyle(
                       color: Colors.white54,
                       fontSize: 12,
                     ),
                   ),
+                  if (movie.rating > 0) ...[
+                    const SizedBox(height: 2),
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.star,
+                          color: Colors.amber,
+                          size: 12,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          movie.rating.toStringAsFixed(1),
+                          style: const TextStyle(
+                            color: Colors.white54,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ],
               ),
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  /// Estado vacío
+  Widget _buildEmptyState() {
+    return const Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.movie_outlined,
+            size: 80,
+            color: Colors.white30,
+          ),
+          SizedBox(height: 24),
+          Text(
+            'No hay películas disponibles',
+            style: TextStyle(
+              fontSize: 18,
+              color: Colors.white70,
+            ),
+          ),
+          SizedBox(height: 12),
+          Text(
+            'Intenta refrescar la lista',
+            style: TextStyle(
+              fontSize: 14,
+              color: Colors.white54,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Estado de error
+  Widget _buildErrorState(String message) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(
+            Icons.error_outline,
+            size: 80,
+            color: Colors.red,
+          ),
+          const SizedBox(height: 24),
+          Text(
+            'Error al cargar películas',
+            style: const TextStyle(
+              fontSize: 18,
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            message,
+            style: const TextStyle(
+              fontSize: 14,
+              color: Colors.white70,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 24),
+          ElevatedButton(
+            onPressed: () {
+              context.read<VodBloc>().add(LoadVodItems());
+            },
+            child: const Text('Reintentar'),
+          ),
+        ],
       ),
     );
   }
@@ -701,10 +1075,10 @@ class _VodsTabState extends State<VodsTab> {
   }
 
   /// Reproducir película
-  void _playMovie(Map<String, String> movie) {
+  void _playMovie(VodItem movie) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('Reproduciendo ${movie['title']}'),
+        content: Text('Reproduciendo ${movie.name}'),
         backgroundColor: Colors.green,
         behavior: SnackBarBehavior.floating,
       ),
@@ -721,29 +1095,11 @@ class SeriesTab extends StatefulWidget {
 }
 
 class _SeriesTabState extends State<SeriesTab> {
-  bool _isLoading = true;
-  List<Map<String, String>> _series = [];
-
   @override
   void initState() {
     super.initState();
-    _loadSeries();
-  }
-
-  Future<void> _loadSeries() async {
-    await Future.delayed(const Duration(seconds: 2));
-    
-    if (mounted) {
-      setState(() {
-        _series = List.generate(10, (index) => {
-          'title': 'Serie ${index + 1}',
-          'poster': 'https://via.placeholder.com/300x450',
-          'seasons': '${(index % 5) + 1}',
-          'genre': index % 3 == 0 ? 'Drama' : index % 3 == 1 ? 'Comedia' : 'Thriller',
-        });
-        _isLoading = false;
-      });
-    }
+    // Cargar series al inicializar el tab
+    context.read<SeriesBloc>().add(LoadSeriesItems());
   }
 
   @override
@@ -769,35 +1125,64 @@ class _SeriesTabState extends State<SeriesTab> {
         ),
         
         Expanded(
-          child: _isLoading 
-              ? _buildSkeletonGrid()
-              : _buildSeriesGrid(),
+          child: BlocBuilder<SeriesBloc, ContentState>(
+            builder: (context, state) {
+              if (state is ContentLoading) {
+                return _buildSkeletonGrid();
+              } else if (state is ContentLoaded<SeriesItem>) {
+                return _buildSeriesGrid(state.items);
+              } else if (state is ContentRefreshing<SeriesItem>) {
+                return _buildSeriesGrid(state.items, isRefreshing: true);
+              } else if (state is ContentError) {
+                return _buildErrorState(state.message);
+              } else {
+                return _buildEmptyState();
+              }
+            },
+          ),
         ),
       ],
     );
   }
 
-  Widget _buildSeriesGrid() {
+  Widget _buildSeriesGrid(List<SeriesItem> series, {bool isRefreshing = false}) {
+    if (series.isEmpty) {
+      return _buildEmptyState();
+    }
+
     return RefreshIndicator(
-      onRefresh: _loadSeries,
-      child: GridView.builder(
-        padding: const EdgeInsets.all(16),
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2,
-          childAspectRatio: 0.7,
-          crossAxisSpacing: 12,
-          mainAxisSpacing: 12,
-        ),
-        itemCount: _series.length,
-        itemBuilder: (context, index) {
-          final serie = _series[index];
-          return _buildSerieCard(serie);
-        },
+      onRefresh: () async {
+        context.read<SeriesBloc>().add(RefreshSeriesItems());
+      },
+      child: Stack(
+        children: [
+          GridView.builder(
+            padding: const EdgeInsets.all(16),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              childAspectRatio: 0.7,
+              crossAxisSpacing: 12,
+              mainAxisSpacing: 12,
+            ),
+            itemCount: series.length,
+            itemBuilder: (context, index) {
+              final serie = series[index];
+              return _buildSerieCard(serie);
+            },
+          ),
+          if (isRefreshing)
+            const Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              child: LinearProgressIndicator(),
+            ),
+        ],
       ),
     );
   }
 
-  Widget _buildSerieCard(Map<String, String> serie) {
+  Widget _buildSerieCard(SeriesItem serie) {
     return Card(
       color: const Color(0xFF161B22),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -816,11 +1201,28 @@ class _SeriesTabState extends State<SeriesTab> {
                     top: Radius.circular(12),
                   ),
                 ),
-                child: const Icon(
-                  Icons.tv,
-                  size: 50,
-                  color: Colors.white,
-                ),
+                child: serie.cover.isNotEmpty
+                    ? ClipRRect(
+                        borderRadius: const BorderRadius.vertical(
+                          top: Radius.circular(12),
+                        ),
+                        child: Image.network(
+                          serie.cover,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) {
+                            return const Icon(
+                              Icons.tv,
+                              size: 50,
+                              color: Colors.white,
+                            );
+                          },
+                        ),
+                      )
+                    : const Icon(
+                        Icons.tv,
+                        size: 50,
+                        color: Colors.white,
+                      ),
               ),
             ),
             Padding(
@@ -829,7 +1231,7 @@ class _SeriesTabState extends State<SeriesTab> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    serie['title']!,
+                    serie.name,
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 16,
@@ -840,17 +1242,110 @@ class _SeriesTabState extends State<SeriesTab> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    '${serie['seasons']} temporadas • ${serie['genre']}',
+                    '${serie.releaseDate?.year ?? 'N/A'} • ${serie.genre.isNotEmpty ? serie.genre : 'General'}',
                     style: const TextStyle(
                       color: Colors.white54,
                       fontSize: 12,
                     ),
                   ),
+                  if (serie.rating > 0) ...[
+                    const SizedBox(height: 2),
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.star,
+                          color: Colors.amber,
+                          size: 12,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          serie.rating.toStringAsFixed(1),
+                          style: const TextStyle(
+                            color: Colors.white54,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ],
               ),
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  /// Estado vacío
+  Widget _buildEmptyState() {
+    return const Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.tv_off,
+            size: 80,
+            color: Colors.white30,
+          ),
+          SizedBox(height: 24),
+          Text(
+            'No hay series disponibles',
+            style: TextStyle(
+              fontSize: 18,
+              color: Colors.white70,
+            ),
+          ),
+          SizedBox(height: 12),
+          Text(
+            'Intenta refrescar la lista',
+            style: TextStyle(
+              fontSize: 14,
+              color: Colors.white54,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Estado de error
+  Widget _buildErrorState(String message) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(
+            Icons.error_outline,
+            size: 80,
+            color: Colors.red,
+          ),
+          const SizedBox(height: 24),
+          Text(
+            'Error al cargar series',
+            style: const TextStyle(
+              fontSize: 18,
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            message,
+            style: const TextStyle(
+              fontSize: 14,
+              color: Colors.white70,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 24),
+          ElevatedButton(
+            onPressed: () {
+              context.read<SeriesBloc>().add(LoadSeriesItems());
+            },
+            child: const Text('Reintentar'),
+          ),
+        ],
       ),
     );
   }
@@ -911,18 +1406,45 @@ class _SeriesTabState extends State<SeriesTab> {
     );
   }
 
-  void _showSerieDetail(Map<String, String> serie) {
+  void _showSerieDetail(SeriesItem serie) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: const Color(0xFF161B22),
         title: Text(
-          serie['title']!,
+          serie.name,
           style: const TextStyle(color: Colors.white),
         ),
-        content: Text(
-          'Detalle de la serie con ${serie['seasons']} temporadas.\n\nFuncionalidad de detalle con episodios estará disponible próximamente.',
-          style: const TextStyle(color: Colors.white70),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (serie.plot.isNotEmpty) ...[
+              Text(
+                serie.plot,
+                style: const TextStyle(color: Colors.white70),
+              ),
+              const SizedBox(height: 12),
+            ],
+            if (serie.cast.isNotEmpty) ...[
+              Text(
+                'Reparto: ${serie.cast}',
+                style: const TextStyle(color: Colors.white54, fontSize: 12),
+              ),
+              const SizedBox(height: 8),
+            ],
+            if (serie.director.isNotEmpty) ...[
+              Text(
+                'Director: ${serie.director}',
+                style: const TextStyle(color: Colors.white54, fontSize: 12),
+              ),
+              const SizedBox(height: 8),
+            ],
+            Text(
+              'Funcionalidad de detalle con episodios estará disponible próximamente.',
+              style: const TextStyle(color: Colors.white70),
+            ),
+          ],
         ),
         actions: [
           TextButton(
@@ -934,7 +1456,7 @@ class _SeriesTabState extends State<SeriesTab> {
               Navigator.of(context).pop();
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: Text('Reproduciendo ${serie['title']}'),
+                  content: Text('Reproduciendo ${serie.name}'),
                   backgroundColor: Colors.green,
                   behavior: SnackBarBehavior.floating,
                 ),

@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import '../models/service_profile.dart';
 import '../storage/profile_repository.dart';
 import '../core/user_session.dart';
+import '../features/iptv/bloc/content_loader_bloc.dart';
+import '../features/iptv/bloc/content_event.dart';
 
 /// LoginScreen
 /// Propósito: permitir conectar nuevo perfil (URL, usuario, contraseña).
@@ -479,6 +482,10 @@ class _LoginScreenState extends State<LoginScreen> {
       // Establecer como perfil activo
       await UserSession.setActiveProfile(profile.username);
 
+      // Inicializar el repositorio de contenido con el perfil
+      final contentLoaderBloc = context.read<ContentLoaderBloc>();
+      await contentLoaderBloc.initializeWithProfile(profile);
+
       // Navegar a TabHome
       if (mounted) {
         context.go('/home');
@@ -506,6 +513,10 @@ class _LoginScreenState extends State<LoginScreen> {
       
       // Establecer como perfil activo
       await UserSession.setActiveProfile(profile.username);
+      
+      // Inicializar el repositorio de contenido con el perfil
+      final contentLoaderBloc = context.read<ContentLoaderBloc>();
+      await contentLoaderBloc.initializeWithProfile(profile);
       
       if (mounted) {
         context.go('/home');

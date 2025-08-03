@@ -48,6 +48,24 @@ class EpgEntry extends Equatable {
     };
   }
 
+  EpgEntry copyWith({
+    int? channelId,
+    String? title,
+    String? description,
+    DateTime? startTime,
+    DateTime? endTime,
+    DateTime? cacheExpiry,
+  }) {
+    return EpgEntry(
+      channelId: channelId ?? this.channelId,
+      title: title ?? this.title,
+      description: description ?? this.description,
+      startTime: startTime ?? this.startTime,
+      endTime: endTime ?? this.endTime,
+      cacheExpiry: cacheExpiry ?? this.cacheExpiry,
+    );
+  }
+
   /// Verificar si el programa está actualmente en vivo
   bool get isLive {
     final now = DateTime.now();

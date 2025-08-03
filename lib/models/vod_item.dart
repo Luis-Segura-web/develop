@@ -74,6 +74,36 @@ class VodItem extends Equatable {
     };
   }
 
+  VodItem copyWith({
+    int? streamId,
+    String? name,
+    String? streamIcon,
+    String? plot,
+    String? director,
+    String? cast,
+    String? genre,
+    DateTime? releaseDate,
+    double? rating,
+    int? categoryId,
+    String? containerExtension,
+    DateTime? cacheExpiry,
+  }) {
+    return VodItem(
+      streamId: streamId ?? this.streamId,
+      name: name ?? this.name,
+      streamIcon: streamIcon ?? this.streamIcon,
+      plot: plot ?? this.plot,
+      director: director ?? this.director,
+      cast: cast ?? this.cast,
+      genre: genre ?? this.genre,
+      releaseDate: releaseDate ?? this.releaseDate,
+      rating: rating ?? this.rating,
+      categoryId: categoryId ?? this.categoryId,
+      containerExtension: containerExtension ?? this.containerExtension,
+      cacheExpiry: cacheExpiry ?? this.cacheExpiry,
+    );
+  }
+
   @override
   @ignore
   List<Object?> get props => [

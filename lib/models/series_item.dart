@@ -74,6 +74,36 @@ class SeriesItem extends Equatable {
     };
   }
 
+  SeriesItem copyWith({
+    int? seriesId,
+    String? name,
+    String? cover,
+    String? plot,
+    String? cast,
+    String? director,
+    String? genre,
+    DateTime? releaseDate,
+    double? rating,
+    int? categoryId,
+    int? episodeRunTime,
+    DateTime? cacheExpiry,
+  }) {
+    return SeriesItem(
+      seriesId: seriesId ?? this.seriesId,
+      name: name ?? this.name,
+      cover: cover ?? this.cover,
+      plot: plot ?? this.plot,
+      cast: cast ?? this.cast,
+      director: director ?? this.director,
+      genre: genre ?? this.genre,
+      releaseDate: releaseDate ?? this.releaseDate,
+      rating: rating ?? this.rating,
+      categoryId: categoryId ?? this.categoryId,
+      episodeRunTime: episodeRunTime ?? this.episodeRunTime,
+      cacheExpiry: cacheExpiry ?? this.cacheExpiry,
+    );
+  }
+
   @override
   @ignore
   List<Object?> get props => [

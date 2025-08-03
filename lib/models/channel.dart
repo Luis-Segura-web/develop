@@ -64,6 +64,30 @@ class Channel extends Equatable {
     };
   }
 
+  Channel copyWith({
+    int? streamId,
+    String? name,
+    String? streamIcon,
+    int? categoryId,
+    String? streamType,
+    bool? hasArchive,
+    DateTime? created,
+    DateTime? addedOn,
+    DateTime? cacheExpiry,
+  }) {
+    return Channel(
+      streamId: streamId ?? this.streamId,
+      name: name ?? this.name,
+      streamIcon: streamIcon ?? this.streamIcon,
+      categoryId: categoryId ?? this.categoryId,
+      streamType: streamType ?? this.streamType,
+      hasArchive: hasArchive ?? this.hasArchive,
+      created: created ?? this.created,
+      addedOn: addedOn ?? this.addedOn,
+      cacheExpiry: cacheExpiry ?? this.cacheExpiry,
+    );
+  }
+
   @override
   @ignore
   List<Object?> get props => [
