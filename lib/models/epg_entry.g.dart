@@ -32,33 +32,23 @@ const EpgEntrySchema = CollectionSchema(
       name: r'description',
       type: IsarType.string,
     ),
-    r'durationInMinutes': PropertySchema(
-      id: 3,
-      name: r'durationInMinutes',
-      type: IsarType.long,
-    ),
     r'endTime': PropertySchema(
-      id: 4,
+      id: 3,
       name: r'endTime',
       type: IsarType.dateTime,
     ),
     r'hashCode': PropertySchema(
-      id: 5,
+      id: 4,
       name: r'hashCode',
       type: IsarType.long,
     ),
-    r'isLive': PropertySchema(
-      id: 6,
-      name: r'isLive',
-      type: IsarType.bool,
-    ),
     r'startTime': PropertySchema(
-      id: 7,
+      id: 5,
       name: r'startTime',
       type: IsarType.dateTime,
     ),
     r'title': PropertySchema(
-      id: 8,
+      id: 6,
       name: r'title',
       type: IsarType.string,
     )
@@ -111,12 +101,10 @@ void _epgEntrySerialize(
   writer.writeDateTime(offsets[0], object.cacheExpiry);
   writer.writeLong(offsets[1], object.channelId);
   writer.writeString(offsets[2], object.description);
-  writer.writeLong(offsets[3], object.durationInMinutes);
-  writer.writeDateTime(offsets[4], object.endTime);
-  writer.writeLong(offsets[5], object.hashCode);
-  writer.writeBool(offsets[6], object.isLive);
-  writer.writeDateTime(offsets[7], object.startTime);
-  writer.writeString(offsets[8], object.title);
+  writer.writeDateTime(offsets[3], object.endTime);
+  writer.writeLong(offsets[4], object.hashCode);
+  writer.writeDateTime(offsets[5], object.startTime);
+  writer.writeString(offsets[6], object.title);
 }
 
 EpgEntry _epgEntryDeserialize(
@@ -129,9 +117,9 @@ EpgEntry _epgEntryDeserialize(
     cacheExpiry: reader.readDateTime(offsets[0]),
     channelId: reader.readLong(offsets[1]),
     description: reader.readString(offsets[2]),
-    endTime: reader.readDateTime(offsets[4]),
-    startTime: reader.readDateTime(offsets[7]),
-    title: reader.readString(offsets[8]),
+    endTime: reader.readDateTime(offsets[3]),
+    startTime: reader.readDateTime(offsets[5]),
+    title: reader.readString(offsets[6]),
   );
   object.id = id;
   return object;
@@ -151,16 +139,12 @@ P _epgEntryDeserializeProp<P>(
     case 2:
       return (reader.readString(offset)) as P;
     case 3:
-      return (reader.readLong(offset)) as P;
+      return (reader.readDateTime(offset)) as P;
     case 4:
-      return (reader.readDateTime(offset)) as P;
-    case 5:
       return (reader.readLong(offset)) as P;
-    case 6:
-      return (reader.readBool(offset)) as P;
-    case 7:
+    case 5:
       return (reader.readDateTime(offset)) as P;
-    case 8:
+    case 6:
       return (reader.readString(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -593,62 +577,6 @@ extension EpgEntryQueryFilter
     });
   }
 
-  QueryBuilder<EpgEntry, EpgEntry, QAfterFilterCondition>
-      durationInMinutesEqualTo(int value) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'durationInMinutes',
-        value: value,
-      ));
-    });
-  }
-
-  QueryBuilder<EpgEntry, EpgEntry, QAfterFilterCondition>
-      durationInMinutesGreaterThan(
-    int value, {
-    bool include = false,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        include: include,
-        property: r'durationInMinutes',
-        value: value,
-      ));
-    });
-  }
-
-  QueryBuilder<EpgEntry, EpgEntry, QAfterFilterCondition>
-      durationInMinutesLessThan(
-    int value, {
-    bool include = false,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.lessThan(
-        include: include,
-        property: r'durationInMinutes',
-        value: value,
-      ));
-    });
-  }
-
-  QueryBuilder<EpgEntry, EpgEntry, QAfterFilterCondition>
-      durationInMinutesBetween(
-    int lower,
-    int upper, {
-    bool includeLower = true,
-    bool includeUpper = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.between(
-        property: r'durationInMinutes',
-        lower: lower,
-        includeLower: includeLower,
-        upper: upper,
-        includeUpper: includeUpper,
-      ));
-    });
-  }
-
   QueryBuilder<EpgEntry, EpgEntry, QAfterFilterCondition> endTimeEqualTo(
       DateTime value) {
     return QueryBuilder.apply(this, (query) {
@@ -803,16 +731,6 @@ extension EpgEntryQueryFilter
         includeLower: includeLower,
         upper: upper,
         includeUpper: includeUpper,
-      ));
-    });
-  }
-
-  QueryBuilder<EpgEntry, EpgEntry, QAfterFilterCondition> isLiveEqualTo(
-      bool value) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'isLive',
-        value: value,
       ));
     });
   }
@@ -1044,18 +962,6 @@ extension EpgEntryQuerySortBy on QueryBuilder<EpgEntry, EpgEntry, QSortBy> {
     });
   }
 
-  QueryBuilder<EpgEntry, EpgEntry, QAfterSortBy> sortByDurationInMinutes() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'durationInMinutes', Sort.asc);
-    });
-  }
-
-  QueryBuilder<EpgEntry, EpgEntry, QAfterSortBy> sortByDurationInMinutesDesc() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'durationInMinutes', Sort.desc);
-    });
-  }
-
   QueryBuilder<EpgEntry, EpgEntry, QAfterSortBy> sortByEndTime() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'endTime', Sort.asc);
@@ -1077,18 +983,6 @@ extension EpgEntryQuerySortBy on QueryBuilder<EpgEntry, EpgEntry, QSortBy> {
   QueryBuilder<EpgEntry, EpgEntry, QAfterSortBy> sortByHashCodeDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'hashCode', Sort.desc);
-    });
-  }
-
-  QueryBuilder<EpgEntry, EpgEntry, QAfterSortBy> sortByIsLive() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'isLive', Sort.asc);
-    });
-  }
-
-  QueryBuilder<EpgEntry, EpgEntry, QAfterSortBy> sortByIsLiveDesc() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'isLive', Sort.desc);
     });
   }
 
@@ -1155,18 +1049,6 @@ extension EpgEntryQuerySortThenBy
     });
   }
 
-  QueryBuilder<EpgEntry, EpgEntry, QAfterSortBy> thenByDurationInMinutes() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'durationInMinutes', Sort.asc);
-    });
-  }
-
-  QueryBuilder<EpgEntry, EpgEntry, QAfterSortBy> thenByDurationInMinutesDesc() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'durationInMinutes', Sort.desc);
-    });
-  }
-
   QueryBuilder<EpgEntry, EpgEntry, QAfterSortBy> thenByEndTime() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'endTime', Sort.asc);
@@ -1200,18 +1082,6 @@ extension EpgEntryQuerySortThenBy
   QueryBuilder<EpgEntry, EpgEntry, QAfterSortBy> thenByIdDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'id', Sort.desc);
-    });
-  }
-
-  QueryBuilder<EpgEntry, EpgEntry, QAfterSortBy> thenByIsLive() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'isLive', Sort.asc);
-    });
-  }
-
-  QueryBuilder<EpgEntry, EpgEntry, QAfterSortBy> thenByIsLiveDesc() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'isLive', Sort.desc);
     });
   }
 
@@ -1261,12 +1131,6 @@ extension EpgEntryQueryWhereDistinct
     });
   }
 
-  QueryBuilder<EpgEntry, EpgEntry, QDistinct> distinctByDurationInMinutes() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addDistinctBy(r'durationInMinutes');
-    });
-  }
-
   QueryBuilder<EpgEntry, EpgEntry, QDistinct> distinctByEndTime() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'endTime');
@@ -1276,12 +1140,6 @@ extension EpgEntryQueryWhereDistinct
   QueryBuilder<EpgEntry, EpgEntry, QDistinct> distinctByHashCode() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'hashCode');
-    });
-  }
-
-  QueryBuilder<EpgEntry, EpgEntry, QDistinct> distinctByIsLive() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addDistinctBy(r'isLive');
     });
   }
 
@@ -1325,12 +1183,6 @@ extension EpgEntryQueryProperty
     });
   }
 
-  QueryBuilder<EpgEntry, int, QQueryOperations> durationInMinutesProperty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addPropertyName(r'durationInMinutes');
-    });
-  }
-
   QueryBuilder<EpgEntry, DateTime, QQueryOperations> endTimeProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'endTime');
@@ -1340,12 +1192,6 @@ extension EpgEntryQueryProperty
   QueryBuilder<EpgEntry, int, QQueryOperations> hashCodeProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'hashCode');
-    });
-  }
-
-  QueryBuilder<EpgEntry, bool, QQueryOperations> isLiveProperty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addPropertyName(r'isLive');
     });
   }
 

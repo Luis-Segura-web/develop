@@ -1,16 +1,14 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
-import 'dart:convert';
-import 'package:http/http.dart' as http;
 
 import 'core/theme.dart';
 import 'core/constants.dart';
 import 'core/user_session.dart';
 import 'l10n/app_localizations.dart';
-import 'shared/models/server_model.dart';
 import 'ui/splash_screen.dart';
 import 'ui/login_screen.dart';
 import 'ui/select_profile_screen.dart';
@@ -21,12 +19,32 @@ import 'features/iptv/bloc/content_state.dart';
 import 'models/channel.dart';
 import 'models/vod_item.dart';
 import 'models/series_item.dart';
+import 'storage/profile_repository.dart';
+import 'storage/cache_manager.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
+  // Usar runZonedGuarded para capturar errores de inicialización
+  runZonedGuarded(() async {
+    // Inicializar todos los servicios y repositorios aquí
+    await _initializeServices();
+    
+    runApp(MyApp());
+  }, (error, stack) {
+    // Manejar errores de inicialización si es necesario
+    print('Error de inicialización no controlado: $error');
+  });
+}
+
+/// Método centralizado para inicializar servicios
+Future<void> _initializeServices() async {
   // Inicializar UserSession primero
   await UserSession.init();
+  
+  // Inicializar repositorios y gestores
+  await ProfileRepository.initialize();
+  await CacheManager.instance.initialize();
   
   // Inicializar Hive
   await Hive.initFlutter();
@@ -39,8 +57,6 @@ void main() async {
     Hive.openBox(AppConstants.settingsBoxName),
     Hive.openBox(AppConstants.cacheBoxName),
   ]);
-  
-  runApp(MyApp());
 }
 
 // Definir router global con manejo completo de navegación

@@ -1,7 +1,7 @@
 import '../services/xtream_service.dart';
 import '../storage/cache_manager.dart';
 import '../models/service_profile.dart';
-import '../models/channel.dart';
+import '../models/channel.dart' as app;
 import '../models/vod_item.dart';
 import '../models/series_item.dart';
 import '../models/epg_entry.dart';
@@ -51,17 +51,9 @@ class ContentRepository {
       // Obtener todos los canales (sin filtro de categoría para carga inicial)
       final channels = await _xtreamService.fetchLiveStreams();
       
-      // Actualizar timestamps de cache
-      final now = DateTime.now();
-      final cachedChannels = channels.map((channel) {
-        return channel.copyWith(
-          cacheExpiry: now.add(const Duration(hours: 6)), // Cache por 6 horas
-        );
-      }).toList();
-      
       // Guardar en cache persistente
-      await _cacheManager.putChannels(cachedChannels);
-      
+      await _cacheManager.putChannels(channels);
+
       // Cargar EPG para los primeros 50 canales (para no sobrecargar)
       final priorityChannels = channels.take(50).toList();
       await _loadEpgForChannels(priorityChannels);
@@ -105,7 +97,7 @@ class ContentRepository {
       _cacheManager.putMemory('series_categories', categories);
       
       // Obtener series
-      final seriesItems = await _xtreamService.fetchSeriesInfo();
+      final seriesItems = await _xtreamService.fetchSeries();
       
       // Actualizar timestamps de cache
       final now = DateTime.now();
@@ -124,7 +116,7 @@ class ContentRepository {
   }
 
   /// Cargar EPG para una lista de canales
-  Future<void> _loadEpgForChannels(List<Channel> channels) async {
+  Future<void> _loadEpgForChannels(List<app.Channel> channels) async {
     final List<EpgEntry> allEpgEntries = [];
     
     // Cargar EPG en lotes para evitar sobrecarga
@@ -170,7 +162,7 @@ class ContentRepository {
   // ============ MÉTODOS DE ACCESO A DATOS ============
 
   /// Obtener canales desde cache
-  Future<List<Channel>> getChannels({int? categoryId}) async {
+  Future<List<app.Channel>> getChannels({int? categoryId}) async {
     try {
       return await _cacheManager.getChannels(categoryId: categoryId);
     } catch (e) {
@@ -203,7 +195,7 @@ class ContentRepository {
     try {
       return await _cacheManager.getSeriesItems(categoryId: categoryId);
     } catch (e) {
-      return await _xtreamService.fetchSeriesInfo(categoryId: categoryId);
+      return await _xtreamService.fetchSeries(categoryId: categoryId);
     }
   }
 
@@ -222,7 +214,7 @@ class ContentRepository {
   }
 
   /// Obtener canal por ID
-  Future<Channel?> getChannel(int streamId) async {
+  Future<app.Channel?> getChannel(int streamId) async {
     return await _cacheManager.getChannel(streamId);
   }
 

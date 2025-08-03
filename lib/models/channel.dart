@@ -6,7 +6,7 @@ part 'channel.g.dart';
 @collection
 class Channel {
   Id id = Isar.autoIncrement;
-  
+
   @Index()
   final int streamId;
   final String name;
@@ -16,11 +16,12 @@ class Channel {
   final bool hasArchive;
   final DateTime? created;
   final DateTime? addedOn;
-  
+
   // Cache TTL
   final DateTime cacheExpiry;
 
-  const Channel({
+  // No const: Isar id is not final
+  Channel({
     required this.streamId,
     required this.name,
     required this.streamIcon,
@@ -95,4 +96,7 @@ class Channel {
 
   @override
   int get hashCode => streamId.hashCode;
+
+  @ignore
+  List<Object?> get props => [streamId, name, streamIcon, categoryId, streamType, hasArchive, created, addedOn, cacheExpiry];
 }

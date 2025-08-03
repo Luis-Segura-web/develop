@@ -6,7 +6,7 @@ part 'series_item.g.dart';
 @collection
 class SeriesItem {
   Id id = Isar.autoIncrement;
-  
+
   @Index()
   final int seriesId;
   final String name;
@@ -19,11 +19,12 @@ class SeriesItem {
   final double rating;
   final int categoryId;
   final int episodeRunTime;
-  
+
   // Cache TTL
   final DateTime cacheExpiry;
 
-  const SeriesItem({
+  // No const: Isar id is not final
+  SeriesItem({
     required this.seriesId,
     required this.name,
     required this.cover,
@@ -111,4 +112,7 @@ class SeriesItem {
 
   @override
   int get hashCode => seriesId.hashCode;
+
+  @ignore
+  List<Object?> get props => [seriesId, name, cover, plot, cast, director, genre, releaseDate, rating, categoryId, episodeRunTime, cacheExpiry];
 }

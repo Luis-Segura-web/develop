@@ -26,7 +26,7 @@ class _SelectProfileScreenState extends State<SelectProfileScreen> {
   /// Cargar perfiles guardados
   Future<void> _loadProfiles() async {
     try {
-      final profiles = await ProfileRepository().readProfiles();
+      final profiles = await ProfileRepository.instance.readProfiles();
       if (mounted) {
         setState(() {
           _profiles = profiles;
@@ -356,7 +356,7 @@ class _SelectProfileScreenState extends State<SelectProfileScreen> {
 
     if (confirmed == true) {
       try {
-        await ProfileRepository().deleteProfile(profile.id);
+        await ProfileRepository.instance.deleteProfile(profile.id);
         
         if (mounted) {
           setState(() {

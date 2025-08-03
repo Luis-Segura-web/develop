@@ -6,7 +6,7 @@ part 'vod_item.g.dart';
 @collection
 class VodItem {
   Id id = Isar.autoIncrement;
-  
+
   @Index()
   final int streamId;
   final String name;
@@ -19,11 +19,12 @@ class VodItem {
   final double rating;
   final int categoryId;
   final String containerExtension;
-  
+
   // Cache TTL
   final DateTime cacheExpiry;
 
-  const VodItem({
+  // No const: Isar id is not final
+  VodItem({
     required this.streamId,
     required this.name,
     required this.streamIcon,
@@ -111,4 +112,7 @@ class VodItem {
 
   @override
   int get hashCode => streamId.hashCode;
+
+  @ignore
+  List<Object?> get props => [streamId, name, streamIcon, plot, director, cast, genre, releaseDate, rating, categoryId, containerExtension, cacheExpiry];
 }

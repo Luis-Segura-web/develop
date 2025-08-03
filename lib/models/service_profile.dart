@@ -10,7 +10,7 @@ class ServiceProfile {
 
   @Index()
   final String baseUrl;
-  
+
   final String username;
   final String password;
   final String? token;

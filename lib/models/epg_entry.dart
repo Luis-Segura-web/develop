@@ -6,18 +6,17 @@ part 'epg_entry.g.dart';
 @collection
 class EpgEntry {
   Id id = Isar.autoIncrement;
-  
+
   @Index()
   final int channelId;
   final String title;
   final String description;
   final DateTime startTime;
   final DateTime endTime;
-  
-  // Cache TTL
   final DateTime cacheExpiry;
 
-  const EpgEntry({
+  // Constructor sin const, id no es final
+  EpgEntry({
     required this.channelId,
     required this.title,
     required this.description,
@@ -65,13 +64,16 @@ class EpgEntry {
     );
   }
 
+
   /// Verificar si el programa está actualmente en vivo
+  @ignore
   bool get isLive {
     final now = DateTime.now();
     return now.isAfter(startTime) && now.isBefore(endTime);
   }
 
   /// Duración del programa en minutos
+  @ignore
   int get durationInMinutes {
     return endTime.difference(startTime).inMinutes;
   }
@@ -79,11 +81,13 @@ class EpgEntry {
   @override
   bool operator ==(Object other) {
     if (identical(this, other)) return true;
-    return other is EpgEntry && 
-           other.channelId == channelId && 
-           other.startTime == startTime;
+    return other is EpgEntry &&
+        other.channelId == channelId &&
+        other.startTime == startTime;
   }
 
   @override
   int get hashCode => Object.hash(channelId, startTime);
+
+  // No incluir props en modelos Isar, solo si usas Equatable fuera de Isar
 }

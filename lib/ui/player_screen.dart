@@ -319,23 +319,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
         style: TextStyle(color: Colors.white),
       ),
     );
-    /*
-    final controller = _playerSelector.activeController as VlcPlayerController?;
-    
-    if (controller == null) {
-      return const Center(
-        child: CircularProgressIndicator(color: Colors.white),
-      );
-    }
-
-    return VlcPlayer(
-      controller: controller,
-      aspectRatio: 16 / 9,
-      placeholder: const Center(
-        child: CircularProgressIndicator(color: Colors.white),
-      ),
-    );
-    */
+  }
 
   /// Construir controles superpuestos
   Widget _buildOverlayControls() {
@@ -345,14 +329,10 @@ class _PlayerScreenState extends State<PlayerScreen> {
         children: [
           // Controles superiores
           _buildTopControls(),
-          
           const Spacer(),
-          
           // Controles centrales
           _buildCenterControls(),
-          
           const Spacer(),
-          
           // Controles inferiores
           _buildBottomControls(),
         ],

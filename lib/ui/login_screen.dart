@@ -380,7 +380,7 @@ class _LoginScreenState extends State<LoginScreen> {
   /// Construir lista de perfiles guardados
   Widget _buildProfilesList() {
     return FutureBuilder<List<ServiceProfile>>(
-      future: ProfileRepository().readProfiles(),
+      future: ProfileRepository.instance.readProfiles(),
       builder: (context, snapshot) {
         if (!snapshot.hasData || snapshot.data!.isEmpty) {
           return const SizedBox.shrink();
@@ -477,7 +477,7 @@ class _LoginScreenState extends State<LoginScreen> {
       await Future.delayed(const Duration(seconds: 2));
 
       // Guardar perfil
-      await ProfileRepository().saveProfile(profile);
+      await ProfileRepository.instance.saveProfile(profile);
       
       // Establecer como perfil activo
       await UserSession.setActiveProfile(profile.username);
