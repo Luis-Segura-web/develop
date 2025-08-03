@@ -11,6 +11,9 @@ import 'core/constants.dart';
 import 'core/user_session.dart';
 import 'l10n/app_localizations.dart';
 import 'shared/models/server_model.dart';
+import 'ui/splash_screen.dart';
+import 'ui/login_screen.dart';
+import 'ui/select_profile_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -21,14 +24,8 @@ void main() async {
   // Inicializar Hive
   await Hive.initFlutter();
   
-  // Registrar adaptadores de Hive
-  // if (!Hive.isAdapterRegistered(0)) {
-  //   Hive.registerAdapter(ServerModelAdapter());
-  // }
-  
   // Abrir cajas de Hive
   await Future.wait([
-    // Hive.openBox<ServerModel>(AppConstants.serversBoxName),
     Hive.openBox(AppConstants.serversBoxName),
     Hive.openBox(AppConstants.favoritesBoxName),
     Hive.openBox(AppConstants.historyBoxName),
@@ -41,7 +38,7 @@ void main() async {
 
 // Definir router global con manejo completo de navegación
 final GoRouter _router = GoRouter(
-  initialLocation: UserSession.getActiveProfile == null ? '/login' : '/home',
+  initialLocation: '/splash',
   routes: [
     GoRoute(
       path: '/splash',
@@ -50,6 +47,10 @@ final GoRouter _router = GoRouter(
     GoRoute(
       path: '/login',
       builder: (context, state) => const LoginScreen(),
+    ),
+    GoRoute(
+      path: '/select-profile',
+      builder: (context, state) => const SelectProfileScreen(),
     ),
     GoRoute(
       path: '/home',
@@ -82,333 +83,7 @@ class MyApp extends StatelessWidget {
   }
 }
 
-// Pantalla de splash
-class SplashScreen extends StatefulWidget {
-  const SplashScreen({super.key});
-
-  @override
-  State<SplashScreen> createState() => _SplashScreenState();
-}
-
-class _SplashScreenState extends State<SplashScreen> {
-  @override
-  void initState() {
-    super.initState();
-    Future.delayed(const Duration(seconds: 2), () {
-      if (mounted) {
-        context.go('/login');
-      }
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFF121212),
-      body: const Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.tv,
-              size: 80,
-              color: Color(0xFF1E88E5),
-            ),
-            SizedBox(height: 20),
-            Text(
-              'Reproductor IPTV',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-              ),
-            ),
-            SizedBox(height: 20),
-            CircularProgressIndicator(
-              color: Color(0xFF1E88E5),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// Pantalla de login con gestión de sesión
-class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
-
-  @override
-  State<LoginScreen> createState() => _LoginScreenState();
-}
-
-class _LoginScreenState extends State<LoginScreen> {
-  final _formKey = GlobalKey<FormState>();
-  final _serverController = TextEditingController();
-  final _portController = TextEditingController(text: '8080');
-  final _usernameController = TextEditingController();
-  final _passwordController = TextEditingController();
-  bool _isLoading = false;
-
-  @override
-  void dispose() {
-    _serverController.dispose();
-    _portController.dispose();
-    _usernameController.dispose();
-    _passwordController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Iniciar Sesión'),
-      ),
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(
-                  Icons.account_circle,
-                  size: 80,
-                  color: Color(0xFF1E88E5),
-                ),
-                const SizedBox(height: 30),
-                TextFormField(
-                  controller: _serverController,
-                  decoration: const InputDecoration(
-                    labelText: 'URL del Servidor',
-                    hintText: 'http://tu-servidor.com',
-                    prefixIcon: Icon(Icons.link),
-                    border: OutlineInputBorder(),
-                  ),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Por favor ingrese la URL del servidor';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: _portController,
-                  decoration: const InputDecoration(
-                    labelText: 'Puerto',
-                    prefixIcon: Icon(Icons.settings_ethernet),
-                    border: OutlineInputBorder(),
-                  ),
-                  keyboardType: TextInputType.number,
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Por favor ingrese el puerto';
-                    }
-                    final port = int.tryParse(value);
-                    if (port == null || port < 1 || port > 65535) {
-                      return 'Puerto inválido (1-65535)';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: _usernameController,
-                  decoration: const InputDecoration(
-                    labelText: 'Usuario',
-                    prefixIcon: Icon(Icons.person),
-                    border: OutlineInputBorder(),
-                  ),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Por favor ingrese su usuario';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: _passwordController,
-                  decoration: const InputDecoration(
-                    labelText: 'Contraseña',
-                    prefixIcon: Icon(Icons.lock),
-                    border: OutlineInputBorder(),
-                  ),
-                  obscureText: true,
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Por favor ingrese su contraseña';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 30),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: _isLoading ? null : _handleLogin,
-                    child: _isLoading
-                        ? const Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                ),
-                              ),
-                              SizedBox(width: 10),
-                              Text('Conectando...'),
-                            ],
-                          )
-                        : const Text('Conectar'),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                TextButton(
-                  onPressed: _isLoading ? null : _showDemoDialog,
-                  child: const Text('Probar Demo'),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  /// Manejar proceso de login
-  Future<void> _handleLogin() async {
-    if (!_formKey.currentState!.validate()) {
-      return;
-    }
-
-    setState(() => _isLoading = true);
-
-    try {
-      // Obtener valores de los campos
-      final server = _serverController.text.trim();
-      final port = _portController.text.trim();
-      final username = _usernameController.text.trim();
-      final password = _passwordController.text.trim();
-
-      // Construir URL completa
-      String serverUrl = server;
-      if (!server.startsWith('http://') && !server.startsWith('https://')) {
-        serverUrl = 'http://$server';
-      }
-      if (port.isNotEmpty) {
-        serverUrl = '$serverUrl:$port';
-      }
-
-      // Simular proceso de conexión
-      await Future.delayed(const Duration(seconds: 2));
-
-      // Validación básica de credenciales
-      if (username.length >= 3 && password.length >= 3) {
-        // Generar un ID de perfil único
-        final profileId = '${username}_${DateTime.now().millisecondsSinceEpoch}';
-        
-        // Guardar datos del perfil
-        final profileData = {
-          'username': username,
-          'serverUrl': serverUrl,
-          'loginTime': DateTime.now().toIso8601String(),
-        };
-        await UserSession.saveProfileData(profileId, profileData);
-        
-        // Guardar el perfil activo
-        await UserSession.setActiveProfile(profileId);
-        
-        if (mounted) {
-          _showSuccessMessage('¡Conexión exitosa a $serverUrl!');
-              Future.delayed(const Duration(seconds: 1), () {
-                if (mounted) {
-                  context.go('/home');
-                }
-              });
-        }
-      } else {
-        _showErrorMessage('Usuario y contraseña deben tener al menos 3 caracteres');
-      }
-    } catch (e) {
-      _showErrorMessage('Error de conexión: ${e.toString()}');
-    } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
-    }
-  }
-
-  /// Mostrar mensaje de error
-  void _showErrorMessage(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.red,
-      ),
-    );
-  }
-
-  /// Mostrar mensaje de éxito
-  void _showSuccessMessage(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.green,
-        duration: const Duration(seconds: 2),
-      ),
-    );
-  }
-
-  /// Mostrar diálogo de demo
-  void _showDemoDialog() {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Modo Demo'),
-          content: const Text(
-            'El modo demo te permite probar la aplicación con datos de ejemplo '
-            'sin necesidad de una conexión real al servidor IPTV.',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Cancelar'),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                Navigator.of(context).pop();
-                // Generar ID de perfil demo
-                final demoProfileId = 'demo_${DateTime.now().millisecondsSinceEpoch}';
-                
-                // Guardar datos del perfil demo
-                final demoProfileData = {
-                  'username': 'demo',
-                  'serverUrl': 'demo.server.com',
-                  'loginTime': DateTime.now().toIso8601String(),
-                  'isDemo': 'true',
-                };
-                await UserSession.saveProfileData(demoProfileId, demoProfileData);
-                await UserSession.setActiveProfile(demoProfileId);
-                
-                context.go('/home');
-              },
-              child: const Text('Continuar'),
-            ),
-          ],
-        );
-      },
-    );
-  }
-}
-
-// TabHomeScreen: Scaffold con BottomNavigation usando IndexedStack
+// TabHomeScreen: Scaffold con BottomNavigation usando IndexedStack (3-5 destinos según especificación)
 class TabHomeScreen extends StatefulWidget {
   const TabHomeScreen({super.key});
 
@@ -421,73 +96,93 @@ class _TabHomeState extends State<TabHomeScreen> {
   
   final List<Widget> tabs = [
     const ChannelsTab(),
-    const MoviesTab(), 
+    const VodsTab(), 
     const SeriesTab(),
+    const FavoritesTab(),
+    const SettingsTab(),
   ];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Reproductor IPTV'),
-        backgroundColor: const Color(0xFF1E88E5),
+        title: const Text(
+          'Reproductor IPTV',
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        backgroundColor: const Color(0xFF0D1117),
+        elevation: 0,
         actions: [
           IconButton(
-            icon: const Icon(Icons.refresh),
+            icon: const Icon(Icons.search, color: Colors.white),
             onPressed: () {
-              // Implementar refresh - depende de qué tab esté activo
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Actualizando contenido...')),
-              );
+              // TODO: Implementar SearchScreen
+              _showComingSoon('Búsqueda global');
             },
+            constraints: const BoxConstraints(
+              minWidth: 48,
+              minHeight: 48,
+            ),
           ),
           IconButton(
-            icon: const Icon(Icons.search),
+            icon: const Icon(Icons.refresh, color: Colors.white),
             onPressed: () {
-              // Implementar búsqueda
+              _refreshCurrentTab();
             },
+            constraints: const BoxConstraints(
+              minWidth: 48,
+              minHeight: 48,
+            ),
           ),
           PopupMenuButton<String>(
+            icon: const Icon(Icons.more_vert, color: Colors.white),
+            color: const Color(0xFF161B22),
             onSelected: (value) {
-              if (value == 'logout') {
-                _handleLogout();
-              } else if (value == 'switch_profile') {
-                _showProfileSelector();
-              } else if (value == 'settings') {
-                _showSettings();
-              }
+              _handleMenuAction(value);
             },
             itemBuilder: (context) => [
               const PopupMenuItem(
-                value: 'switch_profile',
+                value: 'profiles',
                 child: Row(
                   children: [
-                    Icon(Icons.account_circle),
-                    SizedBox(width: 8),
-                    Text('Cambiar perfil'),
+                    Icon(Icons.account_circle, color: Colors.white70),
+                    SizedBox(width: 12),
+                    Text('Cambiar perfil', style: TextStyle(color: Colors.white)),
                   ],
                 ),
               ),
               const PopupMenuItem(
-                value: 'settings',
-                child: Text('Configuración'),
-              ),
-              const PopupMenuItem(
                 value: 'logout',
-                child: Text('Cerrar Sesión'),
+                child: Row(
+                  children: [
+                    Icon(Icons.logout, color: Colors.red),
+                    SizedBox(width: 12),
+                    Text('Cerrar sesión', style: TextStyle(color: Colors.red)),
+                  ],
+                ),
               ),
             ],
           ),
         ],
       ),
+      backgroundColor: const Color(0xFF0D1117),
       body: IndexedStack(
         index: currentIndex,
         children: tabs,
       ),
+      // BottomNavigationBar con 5 destinos según especificación (máximo recomendado)
       bottomNavigationBar: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
+        backgroundColor: const Color(0xFF161B22),
         currentIndex: currentIndex,
         onTap: (idx) => setState(() => currentIndex = idx),
+        selectedItemColor: Colors.blue.shade400,
+        unselectedItemColor: Colors.white54,
+        selectedFontSize: 12,
+        unselectedFontSize: 12,
         items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.live_tv),
@@ -498,12 +193,53 @@ class _TabHomeState extends State<TabHomeScreen> {
             label: 'Películas',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.tv_outlined),
+            icon: Icon(Icons.tv),
             label: 'Series',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.favorite),
+            label: 'Favoritos',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.settings),
+            label: 'Ajustes',
           ),
         ],
       ),
     );
+  }
+
+  /// Refrescar contenido de la pestaña actual
+  void _refreshCurrentTab() {
+    switch (currentIndex) {
+      case 0:
+        _showMessage('Actualizando canales...');
+        break;
+      case 1:
+        _showMessage('Actualizando películas...');
+        break;
+      case 2:
+        _showMessage('Actualizando series...');
+        break;
+      case 3:
+        _showMessage('Actualizando favoritos...');
+        break;
+      case 4:
+        _showMessage('Configuración actualizada');
+        break;
+    }
+  }
+
+  /// Manejar acciones del menú
+  void _handleMenuAction(String action) {
+    switch (action) {
+      case 'profiles':
+        context.go('/select-profile');
+        break;
+      case 'logout':
+        _handleLogout();
+        break;
+    }
   }
 
   /// Manejar cierre de sesión
@@ -511,8 +247,12 @@ class _TabHomeState extends State<TabHomeScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Cerrar Sesión'),
-        content: const Text('¿Estás seguro de que quieres cerrar sesión?'),
+        backgroundColor: const Color(0xFF161B22),
+        title: const Text('Cerrar Sesión', style: TextStyle(color: Colors.white)),
+        content: const Text(
+          '¿Estás seguro de que quieres cerrar sesión?',
+          style: TextStyle(color: Colors.white70),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
@@ -520,6 +260,7 @@ class _TabHomeState extends State<TabHomeScreen> {
           ),
           TextButton(
             onPressed: () => Navigator.of(context).pop(true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
             child: const Text('Cerrar Sesión'),
           ),
         ],
@@ -534,141 +275,25 @@ class _TabHomeState extends State<TabHomeScreen> {
     }
   }
 
-  /// Mostrar selector de perfiles
-  void _showProfileSelector() {
-    final savedProfiles = UserSession.getSavedProfiles();
-    final currentProfile = UserSession.getActiveProfile;
-
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Seleccionar Perfil'),
-          content: savedProfiles.isEmpty
-              ? const Text('No hay perfiles guardados disponibles.')
-              : Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: savedProfiles.map((profileId) {
-                    final isActive = profileId == currentProfile;
-                    return ListTile(
-                      leading: Icon(
-                        Icons.account_circle,
-                        color: isActive ? const Color(0xFF1E88E5) : Colors.grey,
-                      ),
-                      title: Text(
-                        profileId.contains('_') ? profileId.split('_')[0] : profileId,
-                        style: TextStyle(
-                          fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
-                          color: isActive ? const Color(0xFF1E88E5) : null,
-                        ),
-                      ),
-                      subtitle: Text(isActive ? 'Perfil activo' : 'Toca para cambiar'),
-                      onTap: isActive ? null : () => _switchToProfile(profileId),
-                      trailing: isActive
-                          ? const Icon(Icons.check, color: Color(0xFF1E88E5))
-                          : null,
-                    );
-                  }).toList(),
-                ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Cancelar'),
-            ),
-            if (savedProfiles.isNotEmpty)
-              TextButton(
-                onPressed: () {
-                  Navigator.of(context).pop();
-                  context.go('/login');
-                },
-                child: const Text('Nuevo perfil'),
-              ),
-          ],
-        );
-      },
+  /// Mostrar mensaje temporal
+  void _showMessage(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.blue.shade600,
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 2),
+      ),
     );
   }
 
-  /// Cambiar a perfil específico
-  Future<void> _switchToProfile(String profileId) async {
-    try {
-      await UserSession.setActiveProfile(profileId);
-      if (mounted) {
-        Navigator.of(context).pop(); // Cerrar diálogo
-        // Recargar la pantalla con el nuevo perfil
-        context.go('/home');
-      }
-    } catch (e) {
-      if (mounted) {
-        Navigator.of(context).pop(); // Cerrar diálogo
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error al cambiar perfil: ${e.toString()}'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
-  }
-
-  /// Mostrar configuración
-  void _showSettings() {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Configuración'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ListTile(
-                leading: const Icon(Icons.dns),
-                title: const Text('Gestión de Servidores'),
-                subtitle: const Text('Configurar conexiones IPTV'),
-                onTap: () {
-                  Navigator.of(context).pop();
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Funcionalidad: Gestión de servidores IPTV')),
-                  );
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.video_settings),
-                title: const Text('Configuración de Reproductor'),
-                subtitle: const Text('Motor, calidad, controles'),
-                onTap: () {
-                  Navigator.of(context).pop();
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Funcionalidad: Configuración del reproductor')),
-                  );
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.favorite),
-                title: const Text('Gestión de Favoritos'),
-                subtitle: const Text('Ver y organizar favoritos'),
-                onTap: () {
-                  Navigator.of(context).pop();
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Funcionalidad: Gestión de favoritos')),
-                  );
-                },
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Cerrar'),
-            ),
-          ],
-        );
-      },
-    );
+  /// Mostrar mensaje "próximamente"
+  void _showComingSoon(String feature) {
+    _showMessage('$feature estará disponible próximamente');
   }
 }
 
-// Página de Canales en Vivo
+// ChannelsTab: Lista de canales en vivo con skeleton placeholders
 class ChannelsTab extends StatefulWidget {
   const ChannelsTab({super.key});
 
@@ -677,11 +302,655 @@ class ChannelsTab extends StatefulWidget {
 }
 
 class _ChannelsTabState extends State<ChannelsTab> {
+  bool _isLoading = true;
+  List<Map<String, String>> _channels = [];
+
   @override
   void initState() {
     super.initState();
-    // NO cargar canales automáticamente por ahora
+    _loadChannels();
   }
+
+  Future<void> _loadChannels() async {
+    // Simular carga de datos
+    await Future.delayed(const Duration(seconds: 2));
+    
+    if (mounted) {
+      setState(() {
+        _channels = List.generate(20, (index) => {
+          'name': 'Canal ${index + 1}',
+          'logo': 'https://via.placeholder.com/60',
+          'category': index % 3 == 0 ? 'Noticias' : index % 3 == 1 ? 'Entretenimiento' : 'Deportes',
+        });
+        _isLoading = false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        // Barra de búsqueda/filtro opcional
+        Container(
+          padding: const EdgeInsets.all(16),
+          child: TextField(
+            style: const TextStyle(color: Colors.white),
+            decoration: InputDecoration(
+              hintText: 'Buscar canales...',
+              hintStyle: const TextStyle(color: Colors.white54),
+              prefixIcon: const Icon(Icons.search, color: Colors.white54),
+              filled: true,
+              fillColor: const Color(0xFF161B22),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide.none,
+              ),
+            ),
+          ),
+        ),
+        
+        // Cuerpo: ListView.lazy paginada
+        Expanded(
+          child: _isLoading 
+              ? _buildSkeletonList()
+              : _buildChannelsList(),
+        ),
+      ],
+    );
+  }
+
+  /// Lista de canales
+  Widget _buildChannelsList() {
+    return RefreshIndicator(
+      onRefresh: _loadChannels,
+      child: ListView.builder(
+        itemCount: _channels.length,
+        itemBuilder: (context, index) {
+          final channel = _channels[index];
+          return _buildChannelTile(channel);
+        },
+      ),
+    );
+  }
+
+  /// Tile de canal con logo, nombre e indicador de en vivo
+  Widget _buildChannelTile(Map<String, String> channel) {
+    return ListTile(
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      leading: Container(
+        width: 60,
+        height: 60,
+        decoration: BoxDecoration(
+          color: Colors.blue.shade600,
+          borderRadius: BorderRadius.circular(30),
+        ),
+        child: const Icon(
+          Icons.live_tv,
+          color: Colors.white,
+          size: 30,
+        ),
+      ),
+      title: Text(
+        channel['name']!,
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 16,
+          fontWeight: FontWeight.w500,
+        ),
+      ),
+      subtitle: Row(
+        children: [
+          Container(
+            width: 8,
+            height: 8,
+            decoration: const BoxDecoration(
+              color: Colors.red,
+              shape: BoxShape.circle,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            'EN VIVO • ${channel['category']}',
+            style: const TextStyle(
+              color: Colors.white54,
+              fontSize: 12,
+            ),
+          ),
+        ],
+      ),
+      trailing: IconButton(
+        onPressed: () => _playChannel(channel),
+        icon: const Icon(
+          Icons.play_circle_fill,
+          color: Colors.blue,
+          size: 32,
+        ),
+        constraints: const BoxConstraints(
+          minWidth: 48,
+          minHeight: 48,
+        ),
+      ),
+      onTap: () => _playChannel(channel),
+    );
+  }
+
+  /// Skeleton placeholder mientras carga
+  Widget _buildSkeletonList() {
+    return ListView.builder(
+      itemCount: 10,
+      itemBuilder: (context, index) {
+        return ListTile(
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          leading: Container(
+            width: 60,
+            height: 60,
+            decoration: BoxDecoration(
+              color: Colors.white24,
+              borderRadius: BorderRadius.circular(30),
+            ),
+          ),
+          title: Container(
+            height: 16,
+            decoration: BoxDecoration(
+              color: Colors.white24,
+              borderRadius: BorderRadius.circular(4),
+            ),
+          ),
+          subtitle: Container(
+            height: 12,
+            width: 120,
+            margin: const EdgeInsets.only(top: 4),
+            decoration: BoxDecoration(
+              color: Colors.white12,
+              borderRadius: BorderRadius.circular(4),
+            ),
+          ),
+          trailing: Container(
+            width: 32,
+            height: 32,
+            decoration: BoxDecoration(
+              color: Colors.white24,
+              borderRadius: BorderRadius.circular(16),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  /// Reproducir canal
+  void _playChannel(Map<String, String> channel) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Reproduciendo ${channel['name']}'),
+        backgroundColor: Colors.green,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+}
+
+// VodsTab: Películas on-demand con GridView
+class VodsTab extends StatefulWidget {
+  const VodsTab({super.key});
+
+  @override
+  State<VodsTab> createState() => _VodsTabState();
+}
+
+class _VodsTabState extends State<VodsTab> {
+  bool _isLoading = true;
+  List<Map<String, String>> _movies = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadMovies();
+  }
+
+  Future<void> _loadMovies() async {
+    await Future.delayed(const Duration(seconds: 2));
+    
+    if (mounted) {
+      setState(() {
+        _movies = List.generate(12, (index) => {
+          'title': 'Película ${index + 1}',
+          'poster': 'https://via.placeholder.com/300x450',
+          'year': '${2020 + (index % 5)}',
+          'genre': index % 3 == 0 ? 'Acción' : index % 3 == 1 ? 'Drama' : 'Comedia',
+        });
+        _isLoading = false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        // Encabezado opcional con búsqueda
+        Container(
+          padding: const EdgeInsets.all(16),
+          child: TextField(
+            style: const TextStyle(color: Colors.white),
+            decoration: InputDecoration(
+              hintText: 'Buscar películas...',
+              hintStyle: const TextStyle(color: Colors.white54),
+              prefixIcon: const Icon(Icons.search, color: Colors.white54),
+              filled: true,
+              fillColor: const Color(0xFF161B22),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide.none,
+              ),
+            ),
+          ),
+        ),
+        
+        // Grid de películas
+        Expanded(
+          child: _isLoading 
+              ? _buildSkeletonGrid()
+              : _buildMoviesGrid(),
+        ),
+      ],
+    );
+  }
+
+  /// Grid de películas
+  Widget _buildMoviesGrid() {
+    return RefreshIndicator(
+      onRefresh: _loadMovies,
+      child: GridView.builder(
+        padding: const EdgeInsets.all(16),
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2,
+          childAspectRatio: 0.7, // Ratio 2:3 para posters
+          crossAxisSpacing: 12,
+          mainAxisSpacing: 12,
+        ),
+        itemCount: _movies.length,
+        itemBuilder: (context, index) {
+          final movie = _movies[index];
+          return _buildMovieCard(movie);
+        },
+      ),
+    );
+  }
+
+  /// Tarjeta de película
+  Widget _buildMovieCard(Map<String, String> movie) {
+    return Card(
+      color: const Color(0xFF161B22),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: InkWell(
+        onTap: () => _playMovie(movie),
+        borderRadius: BorderRadius.circular(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Imagen carátula (poster 2:3 ratio)
+            Expanded(
+              child: Container(
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  color: Colors.blue.shade600,
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(12),
+                  ),
+                ),
+                child: const Icon(
+                  Icons.movie,
+                  size: 50,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+            
+            // Información
+            Padding(
+              padding: const EdgeInsets.all(8),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Título (negrita 16sp)
+                  Text(
+                    movie['title']!,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 4),
+                  // Año y género
+                  Text(
+                    '${movie['year']} • ${movie['genre']}',
+                    style: const TextStyle(
+                      color: Colors.white54,
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Skeleton grid placeholder
+  Widget _buildSkeletonGrid() {
+    return GridView.builder(
+      padding: const EdgeInsets.all(16),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        childAspectRatio: 0.7,
+        crossAxisSpacing: 12,
+        mainAxisSpacing: 12,
+      ),
+      itemCount: 8,
+      itemBuilder: (context, index) {
+        return Card(
+          color: const Color(0xFF161B22),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          child: Column(
+            children: [
+              Expanded(
+                child: Container(
+                  decoration: const BoxDecoration(
+                    color: Colors.white24,
+                    borderRadius: BorderRadius.vertical(
+                      top: Radius.circular(12),
+                    ),
+                  ),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(8),
+                child: Column(
+                  children: [
+                    Container(
+                      height: 16,
+                      decoration: BoxDecoration(
+                        color: Colors.white24,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Container(
+                      height: 12,
+                      width: 80,
+                      decoration: BoxDecoration(
+                        color: Colors.white12,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  /// Reproducir película
+  void _playMovie(Map<String, String> movie) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Reproduciendo ${movie['title']}'),
+        backgroundColor: Colors.green,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+}
+
+// SeriesTab: Idéntica a VodsTab pero para series
+class SeriesTab extends StatefulWidget {
+  const SeriesTab({super.key});
+
+  @override
+  State<SeriesTab> createState() => _SeriesTabState();
+}
+
+class _SeriesTabState extends State<SeriesTab> {
+  bool _isLoading = true;
+  List<Map<String, String>> _series = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSeries();
+  }
+
+  Future<void> _loadSeries() async {
+    await Future.delayed(const Duration(seconds: 2));
+    
+    if (mounted) {
+      setState(() {
+        _series = List.generate(10, (index) => {
+          'title': 'Serie ${index + 1}',
+          'poster': 'https://via.placeholder.com/300x450',
+          'seasons': '${(index % 5) + 1}',
+          'genre': index % 3 == 0 ? 'Drama' : index % 3 == 1 ? 'Comedia' : 'Thriller',
+        });
+        _isLoading = false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(16),
+          child: TextField(
+            style: const TextStyle(color: Colors.white),
+            decoration: InputDecoration(
+              hintText: 'Buscar series...',
+              hintStyle: const TextStyle(color: Colors.white54),
+              prefixIcon: const Icon(Icons.search, color: Colors.white54),
+              filled: true,
+              fillColor: const Color(0xFF161B22),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide.none,
+              ),
+            ),
+          ),
+        ),
+        
+        Expanded(
+          child: _isLoading 
+              ? _buildSkeletonGrid()
+              : _buildSeriesGrid(),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSeriesGrid() {
+    return RefreshIndicator(
+      onRefresh: _loadSeries,
+      child: GridView.builder(
+        padding: const EdgeInsets.all(16),
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2,
+          childAspectRatio: 0.7,
+          crossAxisSpacing: 12,
+          mainAxisSpacing: 12,
+        ),
+        itemCount: _series.length,
+        itemBuilder: (context, index) {
+          final serie = _series[index];
+          return _buildSerieCard(serie);
+        },
+      ),
+    );
+  }
+
+  Widget _buildSerieCard(Map<String, String> serie) {
+    return Card(
+      color: const Color(0xFF161B22),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: InkWell(
+        onTap: () => _showSerieDetail(serie),
+        borderRadius: BorderRadius.circular(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: Container(
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  color: Colors.purple.shade600,
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(12),
+                  ),
+                ),
+                child: const Icon(
+                  Icons.tv,
+                  size: 50,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(8),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    serie['title']!,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '${serie['seasons']} temporadas • ${serie['genre']}',
+                    style: const TextStyle(
+                      color: Colors.white54,
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSkeletonGrid() {
+    return GridView.builder(
+      padding: const EdgeInsets.all(16),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        childAspectRatio: 0.7,
+        crossAxisSpacing: 12,
+        mainAxisSpacing: 12,
+      ),
+      itemCount: 8,
+      itemBuilder: (context, index) {
+        return Card(
+          color: const Color(0xFF161B22),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          child: Column(
+            children: [
+              Expanded(
+                child: Container(
+                  decoration: const BoxDecoration(
+                    color: Colors.white24,
+                    borderRadius: BorderRadius.vertical(
+                      top: Radius.circular(12),
+                    ),
+                  ),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(8),
+                child: Column(
+                  children: [
+                    Container(
+                      height: 16,
+                      decoration: BoxDecoration(
+                        color: Colors.white24,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Container(
+                      height: 12,
+                      width: 100,
+                      decoration: BoxDecoration(
+                        color: Colors.white12,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _showSerieDetail(Map<String, String> serie) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF161B22),
+        title: Text(
+          serie['title']!,
+          style: const TextStyle(color: Colors.white),
+        ),
+        content: Text(
+          'Detalle de la serie con ${serie['seasons']} temporadas.\n\nFuncionalidad de detalle con episodios estará disponible próximamente.',
+          style: const TextStyle(color: Colors.white70),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cerrar'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Reproduciendo ${serie['title']}'),
+                  backgroundColor: Colors.green,
+                  behavior: SnackBarBehavior.floating,
+                ),
+              );
+            },
+            child: const Text('Ver ahora'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// FavoritesTab: Tab opcional según especificación
+class FavoritesTab extends StatelessWidget {
+  const FavoritesTab({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -690,25 +959,25 @@ class _ChannelsTabState extends State<ChannelsTab> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(
-            Icons.live_tv,
+            Icons.favorite_outline,
             size: 80,
-            color: Color(0xFF1E88E5),
+            color: Colors.white30,
           ),
-          SizedBox(height: 20),
+          SizedBox(height: 24),
           Text(
-            'Canales en Vivo',
+            'Favoritos',
             style: TextStyle(
               fontSize: 24,
               fontWeight: FontWeight.bold,
               color: Colors.white,
             ),
           ),
-          SizedBox(height: 10),
+          SizedBox(height: 12),
           Text(
-            'Aquí aparecerán los canales de TV en vivo',
+            'Tus contenidos favoritos aparecerán aquí',
             style: TextStyle(
               fontSize: 16,
-              color: Colors.grey,
+              color: Colors.white54,
             ),
             textAlign: TextAlign.center,
           ),
@@ -718,95 +987,287 @@ class _ChannelsTabState extends State<ChannelsTab> {
   }
 }
 
-// Página de Películas (VOD)
-class MoviesTab extends StatefulWidget {
-  const MoviesTab({super.key});
+// SettingsTab: Configuración según especificación
+class SettingsTab extends StatefulWidget {
+  const SettingsTab({super.key});
 
   @override
-  State<MoviesTab> createState() => _MoviesTabState();
+  State<SettingsTab> createState() => _SettingsTabState();
 }
 
-class _MoviesTabState extends State<MoviesTab> {
-  @override
-  void initState() {
-    super.initState();
-    // NO cargar películas automáticamente
-  }
+class _SettingsTabState extends State<SettingsTab> {
+  bool _darkMode = true;
+  String _defaultEngine = 'media3';
+  double _cacheLimit = 500;
 
   @override
   Widget build(BuildContext context) {
-    return const Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.movie,
-            size: 80,
-            color: Color(0xFF1E88E5),
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        const Text(
+          'Configuración',
+          style: TextStyle(
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
           ),
-          SizedBox(height: 20),
-          Text(
-            'Películas',
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
+        ),
+        
+        const SizedBox(height: 24),
+        
+        // Modo oscuro
+        Card(
+          color: const Color(0xFF161B22),
+          child: SwitchListTile(
+            title: const Text(
+              'Modo oscuro',
+              style: TextStyle(color: Colors.white),
+            ),
+            subtitle: const Text(
+              'Tema oscuro para la aplicación',
+              style: TextStyle(color: Colors.white54),
+            ),
+            value: _darkMode,
+            onChanged: (value) {
+              setState(() {
+                _darkMode = value;
+              });
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(_darkMode ? 'Modo oscuro activado' : 'Modo claro activado'),
+                  backgroundColor: Colors.green,
+                  behavior: SnackBarBehavior.floating,
+                ),
+              );
+            },
+          ),
+        ),
+        
+        const SizedBox(height: 12),
+        
+        // Motor predeterminado
+        Card(
+          color: const Color(0xFF161B22),
+          child: ListTile(
+            title: const Text(
+              'Motor predeterminado',
+              style: TextStyle(color: Colors.white),
+            ),
+            subtitle: Text(
+              _defaultEngine == 'media3' ? 'Media3 (Recomendado)' : 'VLC Player',
+              style: const TextStyle(color: Colors.white54),
+            ),
+            trailing: const Icon(Icons.arrow_forward_ios, color: Colors.white54),
+            onTap: () {
+              _showEngineSelector();
+            },
+          ),
+        ),
+        
+        const SizedBox(height: 12),
+        
+        // Límite cache vídeo
+        Card(
+          color: const Color(0xFF161B22),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Límite cache vídeo',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  '${_cacheLimit.toInt()} MB',
+                  style: const TextStyle(
+                    color: Colors.white54,
+                    fontSize: 14,
+                  ),
+                ),
+                Slider(
+                  value: _cacheLimit,
+                  min: 100,
+                  max: 2000,
+                  divisions: 19,
+                  onChanged: (value) {
+                    setState(() {
+                      _cacheLimit = value;
+                    });
+                  },
+                ),
+              ],
             ),
           ),
-          SizedBox(height: 10),
-          Text(
-            'Aquí aparecerán las películas disponibles',
-            style: TextStyle(
-              fontSize: 16,
-              color: Colors.grey,
+        ),
+        
+        const SizedBox(height: 12),
+        
+        // Limpiar cache
+        Card(
+          color: const Color(0xFF161B22),
+          child: ListTile(
+            title: const Text(
+              'Limpiar cache & datos',
+              style: TextStyle(color: Colors.white),
             ),
+            subtitle: const Text(
+              'Borrar datos en caché',
+              style: TextStyle(color: Colors.white54),
+            ),
+            trailing: const Icon(Icons.delete_outline, color: Colors.orange),
+            onTap: () {
+              _showClearCacheDialog();
+            },
+          ),
+        ),
+        
+        const SizedBox(height: 24),
+        
+        // Cerrar sesión
+        SizedBox(
+          height: 52,
+          child: ElevatedButton.icon(
+            onPressed: () {
+              _showLogoutDialog();
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            icon: const Icon(Icons.logout),
+            label: const Text(
+              'Cerrar sesión',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  void _showEngineSelector() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF161B22),
+        title: const Text(
+          'Motor de reproducción',
+          style: TextStyle(color: Colors.white),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            RadioListTile<String>(
+              title: const Text(
+                'Media3 (Recomendado)',
+                style: TextStyle(color: Colors.white),
+              ),
+              value: 'media3',
+              groupValue: _defaultEngine,
+              onChanged: (value) {
+                setState(() {
+                  _defaultEngine = value!;
+                });
+                Navigator.of(context).pop();
+              },
+            ),
+            RadioListTile<String>(
+              title: const Text(
+                'VLC Player',
+                style: TextStyle(color: Colors.white),
+              ),
+              value: 'vlc',
+              groupValue: _defaultEngine,
+              onChanged: (value) {
+                setState(() {
+                  _defaultEngine = value!;
+                });
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showClearCacheDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF161B22),
+        title: const Text(
+          'Limpiar cache',
+          style: TextStyle(color: Colors.white),
+        ),
+        content: const Text(
+          '¿Estás seguro de que quieres limpiar todos los datos en caché?',
+          style: TextStyle(color: Colors.white70),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Cache limpia'),
+                  backgroundColor: Colors.green,
+                  behavior: SnackBarBehavior.floating,
+                ),
+              );
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
+            child: const Text('Limpiar'),
           ),
         ],
       ),
     );
   }
-}
 
-// Página de Series
-class SeriesTab extends StatefulWidget {
-  const SeriesTab({super.key});
-
-  @override
-  State<SeriesTab> createState() => _SeriesTabState();
-}
-
-class _SeriesTabState extends State<SeriesTab> {
-  @override
-  void initState() {
-    super.initState();
-    // NO cargar series automáticamente
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return const Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.tv_outlined,
-            size: 80,
-            color: Color(0xFF1E88E5),
+  void _showLogoutDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF161B22),
+        title: const Text(
+          'Cerrar sesión',
+          style: TextStyle(color: Colors.white),
+        ),
+        content: const Text(
+          '¿Estás seguro de que quieres cerrar sesión?',
+          style: TextStyle(color: Colors.white70),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancelar'),
           ),
-          SizedBox(height: 20),
-          Text(
-            'Series',
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          SizedBox(height: 10),
-          Text(
-            'Aquí aparecerán las series disponibles',
-            style: TextStyle(
-              fontSize: 16,
-              color: Colors.grey,
-            ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.of(context).pop();
+              await UserSession.clearSession();
+              if (context.mounted) {
+                context.go('/login');
+              }
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('Cerrar sesión'),
           ),
         ],
       ),

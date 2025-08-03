@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../models/service_profile.dart';
 import '../storage/profile_repository.dart';
-import 'app_router.dart';
+import '../core/user_session.dart';
 
-/// Pantalla de selección de perfiles
+/// SelectProfileScreen para multi-perfil
+/// Propósito: Permitir seleccionar entre perfiles guardados o crear uno nuevo
 class SelectProfileScreen extends StatefulWidget {
   const SelectProfileScreen({super.key});
 
@@ -12,7 +14,6 @@ class SelectProfileScreen extends StatefulWidget {
 }
 
 class _SelectProfileScreenState extends State<SelectProfileScreen> {
-  final ProfileRepository _profileRepository = ProfileRepository();
   List<ServiceProfile> _profiles = [];
   bool _isLoading = true;
 
@@ -25,16 +26,20 @@ class _SelectProfileScreenState extends State<SelectProfileScreen> {
   /// Cargar perfiles guardados
   Future<void> _loadProfiles() async {
     try {
-      final profiles = await _profileRepository.readProfiles();
-      setState(() {
-        _profiles = profiles;
-        _isLoading = false;
-      });
+      final profiles = await ProfileRepository().readProfiles();
+      if (mounted) {
+        setState(() {
+          _profiles = profiles;
+          _isLoading = false;
+        });
+      }
     } catch (e) {
-      setState(() {
-        _isLoading = false;
-      });
-      _showErrorDialog('Error al cargar perfiles', e.toString());
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+        _showErrorMessage('Error al cargar perfiles: ${e.toString()}');
+      }
     }
   }
 
@@ -43,93 +48,95 @@ class _SelectProfileScreenState extends State<SelectProfileScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFF0D1117),
       appBar: AppBar(
-        title: const Text('Seleccionar Perfil'),
-        backgroundColor: const Color(0xFF161B22),
-        foregroundColor: Colors.white,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.add),
-            onPressed: () => AppRouter.navigateToLogin(context),
-            tooltip: 'Agregar nuevo perfil',
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        title: const Text(
+          'Selecciona perfil',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 20,
+            fontWeight: FontWeight.w600,
           ),
-        ],
+        ),
+        centerTitle: true,
       ),
-      body: _isLoading ? _buildLoadingScreen() : _buildProfilesList(),
-    );
-  }
-
-  /// Pantalla de carga
-  Widget _buildLoadingScreen() {
-    return const Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          CircularProgressIndicator(color: Colors.blue),
-          SizedBox(height: 16),
-          Text(
-            'Cargando perfiles...',
-            style: TextStyle(color: Colors.white70),
+      body: _isLoading
+          ? const Center(
+              child: CircularProgressIndicator(
+                color: Colors.blue,
+              ),
+            )
+          : _profiles.isEmpty
+              ? _buildEmptyState()
+              : _buildProfilesList(),
+      // Botón flotante FAB "+ Nuevo"
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => context.go('/login'),
+        backgroundColor: Colors.blue.shade600,
+        icon: const Icon(Icons.add, color: Colors.white),
+        label: const Text(
+          'Nuevo',
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.w600,
           ),
-        ],
+        ),
       ),
     );
   }
 
-  /// Lista de perfiles
-  Widget _buildProfilesList() {
-    if (_profiles.isEmpty) {
-      return _buildEmptyState();
-    }
-
-    return ListView.builder(
-      padding: const EdgeInsets.all(16),
-      itemCount: _profiles.length,
-      itemBuilder: (context, index) {
-        final profile = _profiles[index];
-        return _buildProfileCard(profile);
-      },
-    );
-  }
-
-  /// Estado vacío
+  /// Estado vacío cuando no hay perfiles
   Widget _buildEmptyState() {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(24.0),
+        padding: const EdgeInsets.all(32.0),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
               Icons.account_circle_outlined,
               size: 80,
-              color: Colors.white30,
+              color: Colors.white.withOpacity(0.3),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 24),
             const Text(
-              'No hay perfiles configurados',
+              'No hay perfiles guardados',
               style: TextStyle(
-                fontSize: 20,
+                fontSize: 22,
                 fontWeight: FontWeight.bold,
                 color: Colors.white,
               ),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'Agregue un nuevo perfil para comenzar',
-              style: TextStyle(color: Colors.white70),
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 24),
-            ElevatedButton.icon(
-              onPressed: () => AppRouter.navigateToLogin(context),
-              icon: const Icon(Icons.add),
-              label: const Text('Agregar Perfil'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blue.shade600,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 24,
-                  vertical: 12,
+            const SizedBox(height: 12),
+            Text(
+              'Presiona el botón + para crear tu primer perfil IPTV',
+              style: TextStyle(
+                fontSize: 16,
+                color: Colors.white.withOpacity(0.7),
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 32),
+            SizedBox(
+              height: 52,
+              child: ElevatedButton.icon(
+                onPressed: () => context.go('/login'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blue.shade600,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                ),
+                icon: const Icon(Icons.add),
+                label: const Text(
+                  'Crear perfil',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
             ),
@@ -139,128 +146,29 @@ class _SelectProfileScreenState extends State<SelectProfileScreen> {
     );
   }
 
-  /// Tarjeta de perfil
-  Widget _buildProfileCard(ServiceProfile profile) {
-    return Card(
-      color: const Color(0xFF161B22),
-      margin: const EdgeInsets.only(bottom: 12),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          children: [
-            // Avatar
-            CircleAvatar(
-              radius: 30,
-              backgroundColor: Colors.blue.shade600,
-              child: Text(
-                profile.username[0].toUpperCase(),
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-            
-            const SizedBox(width: 16),
-            
-            // Información del perfil
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    profile.username,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    profile.baseUrl,
-                    style: const TextStyle(color: Colors.white70),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      _buildStatusChip(profile),
-                      const SizedBox(width: 8),
-                      _buildEngineChip(profile),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            
-            // Acciones
-            Column(
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.play_arrow, color: Colors.green),
-                  onPressed: () => _selectProfile(profile),
-                  tooltip: 'Seleccionar perfil',
-                ),
-                IconButton(
-                  icon: const Icon(Icons.delete, color: Colors.red),
-                  onPressed: () => _confirmDeleteProfile(profile),
-                  tooltip: 'Eliminar perfil',
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  /// Chip de estado del perfil
-  Widget _buildStatusChip(ServiceProfile profile) {
-    final needsRefresh = profile.needsTokenRefresh;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: needsRefresh ? Colors.orange.shade600 : Colors.green.shade600,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Text(
-        needsRefresh ? 'Token expirado' : 'Activo',
-        style: const TextStyle(
-          color: Colors.white,
-          fontSize: 12,
-          fontWeight: FontWeight.bold,
-        ),
-      ),
-    );
-  }
-
-  /// Chip de motor de reproducción
-  Widget _buildEngineChip(ServiceProfile profile) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: Colors.blue.shade600,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
+  /// Lista vertical de perfiles guardados
+  Widget _buildProfilesList() {
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(
-            profile.preferredEngine == PlayerEngine.media3
-                ? Icons.video_library
-                : Icons.play_circle,
-            color: Colors.white,
-            size: 14,
-          ),
-          const SizedBox(width: 4),
-          Text(
-            profile.preferredEngine.name.toUpperCase(),
-            style: const TextStyle(
+          const Text(
+            'Perfiles disponibles:',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
               color: Colors.white,
-              fontSize: 12,
-              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Expanded(
+            child: ListView.builder(
+              itemCount: _profiles.length,
+              itemBuilder: (context, index) {
+                final profile = _profiles[index];
+                return _buildProfileCard(profile, index);
+              },
             ),
           ),
         ],
@@ -268,79 +176,219 @@ class _SelectProfileScreenState extends State<SelectProfileScreen> {
     );
   }
 
-  /// Seleccionar perfil
+  /// Tarjeta por perfil con logo genérico, baseUrl y nombre de usuario
+  Widget _buildProfileCard(ServiceProfile profile, int index) {
+    return Card(
+      color: const Color(0xFF161B22),
+      margin: const EdgeInsets.only(bottom: 12),
+      elevation: 4,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: InkWell(
+        onTap: () => _selectProfile(profile),
+        borderRadius: BorderRadius.circular(16),
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Row(
+            children: [
+              // Logo genérico
+              Container(
+                width: 60,
+                height: 60,
+                decoration: BoxDecoration(
+                  color: Colors.blue.shade600,
+                  borderRadius: BorderRadius.circular(30),
+                ),
+                child: const Icon(
+                  Icons.live_tv,
+                  size: 30,
+                  color: Colors.white,
+                ),
+              ),
+              
+              const SizedBox(width: 16),
+              
+              // Información del perfil
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Nombre de usuario (negrita)
+                    Text(
+                      profile.username,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    // baseUrl (en gris)
+                    Text(
+                      profile.baseUrl,
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.white.withOpacity(0.7),
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 4),
+                    // Motor preferido
+                    Text(
+                      'Motor: ${profile.preferredEngine ?? 'media3'}',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.white.withOpacity(0.5),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              
+              // Botones secundarios: editar y eliminar
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Botón editar (ícono "lápiz")
+                  IconButton(
+                    onPressed: () => _editProfile(profile, index),
+                    icon: const Icon(
+                      Icons.edit_outlined,
+                      color: Colors.white70,
+                      size: 20,
+                    ),
+                    constraints: const BoxConstraints(
+                      minWidth: 48,
+                      minHeight: 48,
+                    ),
+                  ),
+                  // Botón eliminar (ícono "basura")
+                  IconButton(
+                    onPressed: () => _deleteProfile(profile, index),
+                    icon: const Icon(
+                      Icons.delete_outline,
+                      color: Colors.red,
+                      size: 20,
+                    ),
+                    constraints: const BoxConstraints(
+                      minWidth: 48,
+                      minHeight: 48,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Seleccionar perfil y navegar a TabHome
   Future<void> _selectProfile(ServiceProfile profile) async {
     try {
       // Verificar si el token necesita renovación
       final updatedProfile = await profile.refreshTokenIfNeeded();
       
+      // Establecer como perfil activo
+      await UserSession.setActiveProfile(profile.username);
+      
       if (mounted) {
-        AppRouter.navigateToCategories(context, updatedProfile);
+        context.go('/home');
       }
     } catch (e) {
-      _showErrorDialog('Error al conectar', e.toString());
+      _showErrorMessage('Error al conectar con el perfil: ${e.toString()}');
     }
   }
 
-  /// Confirmar eliminación de perfil
-  void _confirmDeleteProfile(ServiceProfile profile) {
+  /// Editar perfil (por ahora solo mostrar mensaje)
+  void _editProfile(ServiceProfile profile, int index) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Eliminar Perfil'),
+        backgroundColor: const Color(0xFF161B22),
+        title: const Text(
+          'Editar perfil',
+          style: TextStyle(color: Colors.white),
+        ),
         content: Text(
-          '¿Está seguro de que desea eliminar el perfil "${profile.username}"?',
+          'Función de edición para ${profile.username} estará disponible próximamente.',
+          style: const TextStyle(color: Colors.white70),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Entendido'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Eliminar perfil con confirmación
+  Future<void> _deleteProfile(ServiceProfile profile, int index) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF161B22),
+        title: const Text(
+          'Eliminar perfil',
+          style: TextStyle(color: Colors.white),
+        ),
+        content: Text(
+          '¿Estás seguro de que quieres eliminar el perfil "${profile.username}"?',
+          style: const TextStyle(color: Colors.white70),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
             child: const Text('Cancelar'),
           ),
           TextButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              _deleteProfile(profile);
-            },
+            onPressed: () => Navigator.of(context).pop(true),
             style: TextButton.styleFrom(foregroundColor: Colors.red),
             child: const Text('Eliminar'),
           ),
         ],
       ),
     );
-  }
 
-  /// Eliminar perfil
-  Future<void> _deleteProfile(ServiceProfile profile) async {
-    try {
-      await _profileRepository.deleteProfile(profile.id);
-      await _loadProfiles(); // Recargar lista
-      
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Perfil eliminado correctamente'),
-            backgroundColor: Colors.green,
-          ),
-        );
+    if (confirmed == true) {
+      try {
+        await ProfileRepository().deleteProfile(profile.username);
+        
+        if (mounted) {
+          setState(() {
+            _profiles.removeAt(index);
+          });
+          
+          _showSuccessMessage('Perfil eliminado correctamente');
+        }
+      } catch (e) {
+        _showErrorMessage('Error al eliminar perfil: ${e.toString()}');
       }
-    } catch (e) {
-      _showErrorDialog('Error al eliminar perfil', e.toString());
     }
   }
 
-  /// Mostrar diálogo de error
-  void _showErrorDialog(String title, String message) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(title),
+  /// Mostrar mensaje de error
+  void _showErrorMessage(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
         content: Text(message),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cerrar'),
-          ),
-        ],
+        backgroundColor: Colors.red,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
+  /// Mostrar mensaje de éxito
+  void _showSuccessMessage(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.green,
+        behavior: SnackBarBehavior.floating,
       ),
     );
   }
