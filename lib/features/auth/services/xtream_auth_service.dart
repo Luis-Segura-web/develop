@@ -1,13 +1,15 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:xtream_code_client/xtream_code_client.dart';
 import '../../../shared/models/server_model.dart';
 
 class XtreamAuthService {
+  XtreamCodeClient? _client;
   ServerModel? _currentServer;
   Map<String, dynamic>? _serverInfo;
 
   ServerModel? get currentServer => _currentServer;
-  bool get isConnected => _currentServer != null && _serverInfo != null;
+  bool get isConnected => _client != null && _currentServer != null;
 
   /// Conectar con servidor Xtream Codes usando parámetros individuales
   Future<bool> connect({
