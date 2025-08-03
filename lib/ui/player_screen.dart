@@ -6,6 +6,7 @@ import '../models/service_profile.dart';
 import '../models/stream_item.dart';
 import '../player/player_selector.dart';
 import '../services/stream_url_builder.dart';
+import '../core/constants.dart';
 
 /// Pantalla principal del reproductor con UI en español latino
 class PlayerScreen extends StatefulWidget {

@@ -75,6 +75,7 @@ class SeriesItem extends Equatable {
   }
 
   @override
+  @ignore
   List<Object?> get props => [
         seriesId,
         name,

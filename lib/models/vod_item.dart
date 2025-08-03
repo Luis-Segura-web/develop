@@ -75,6 +75,7 @@ class VodItem extends Equatable {
   }
 
   @override
+  @ignore
   List<Object?> get props => [
         streamId,
         name,

@@ -434,7 +434,7 @@ class _LoginScreenState extends State<LoginScreen> {
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
-              profile.preferredEngine == PlayerEngine.media3
+              profile.preferredEngine == 'media3'
                   ? Icons.video_library
                   : Icons.play_circle,
               color: Colors.white70,
@@ -502,7 +502,7 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _selectProfile(ServiceProfile profile) async {
     try {
       // Verificar si el token necesita renovación
-      final updatedProfile = await profile.refreshTokenIfNeeded();
+      await profile.refreshTokenIfNeeded();
       
       // Establecer como perfil activo
       await UserSession.setActiveProfile(profile.username);

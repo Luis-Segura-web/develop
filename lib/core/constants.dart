@@ -81,3 +81,8 @@ enum ConnectionStatus {
   connected,
   error,
 }
+
+enum PlayerEngine {
+  media3,
+  vlc,
+}

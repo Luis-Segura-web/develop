@@ -289,7 +289,7 @@ class _SelectProfileScreenState extends State<SelectProfileScreen> {
   Future<void> _selectProfile(ServiceProfile profile) async {
     try {
       // Verificar si el token necesita renovación
-      final updatedProfile = await profile.refreshTokenIfNeeded();
+      await profile.refreshTokenIfNeeded();
       
       // Establecer como perfil activo
       await UserSession.setActiveProfile(profile.username);
@@ -356,7 +356,7 @@ class _SelectProfileScreenState extends State<SelectProfileScreen> {
 
     if (confirmed == true) {
       try {
-        await ProfileRepository().deleteProfile(profile.username);
+        await ProfileRepository().deleteProfile(profile.id);
         
         if (mounted) {
           setState(() {

@@ -60,6 +60,7 @@ class EpgEntry extends Equatable {
   }
 
   @override
+  @ignore
   List<Object?> get props => [
         channelId,
         title,

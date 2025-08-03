@@ -5,6 +5,7 @@ import '../models/stream_item.dart';
 import '../services/stream_url_builder.dart';
 import '../storage/profile_repository.dart';
 import '../analytics/playback_logger.dart';
+import '../core/constants.dart';
 
 /// Selector de reproductor con soporte dual de motores
 class PlayerSelector {
@@ -55,7 +56,7 @@ class PlayerSelector {
       _currentProfile = serviceProfile;
       _currentItem = item;
       _currentUrl = url;
-      _currentEngine = serviceProfile.preferredEngine;
+      _currentEngine = serviceProfile.playerEngine;
       
       // Log inicio de reproducción
       _playbackLogger.logPlayStarted(

@@ -1,4 +1,5 @@
 import 'package:isar/isar.dart';
+import '../core/constants.dart';
 
 part 'service_profile.g.dart';
 
@@ -55,6 +56,18 @@ class ServiceProfile {
   bool get needsTokenRefresh {
     if (token == null || tokenExpiry == null) return true;
     return DateTime.now().add(const Duration(minutes: 5)).isAfter(tokenExpiry!);
+  }
+
+  /// Obtener el motor de reproducción como enum
+  @ignore
+  PlayerEngine get playerEngine {
+    switch (preferredEngine?.toLowerCase()) {
+      case 'vlc':
+        return PlayerEngine.vlc;
+      case 'media3':
+      default:
+        return PlayerEngine.media3;
+    }
   }
 
   /// Método para renovar token si es necesario

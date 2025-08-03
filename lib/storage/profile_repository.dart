@@ -1,6 +1,7 @@
 import 'package:isar/isar.dart';
 import 'package:path_provider/path_provider.dart';
 import '../models/service_profile.dart';
+import '../core/constants.dart';
 
 /// Repositorio para gestionar perfiles de servicio usando Isar
 class ProfileRepository {
@@ -87,7 +88,8 @@ class ProfileRepository {
         throw Exception('Perfil no encontrado');
       }
       
-      final updatedProfile = profile.copyWith(preferredEngine: engine);
+      final engineString = engine == PlayerEngine.vlc ? 'vlc' : 'media3';
+      final updatedProfile = profile.copyWith(preferredEngine: engineString);
       await saveProfile(updatedProfile);
     } catch (e) {
       throw Exception('Error al actualizar motor preferido: $e');
@@ -170,10 +172,10 @@ class ProfileRepository {
           p.tokenExpiry!.isBefore(DateTime.now())
       ).length;
       stats['media3_engine'] = profiles.where((p) => 
-          p.preferredEngine == PlayerEngine.media3
+          p.preferredEngine == 'media3'
       ).length;
       stats['vlc_engine'] = profiles.where((p) => 
-          p.preferredEngine == PlayerEngine.vlc
+          p.preferredEngine == 'vlc'
       ).length;
       
       return stats;
