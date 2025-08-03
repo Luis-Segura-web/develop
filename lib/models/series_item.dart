@@ -1,11 +1,10 @@
-import 'package:equatable/equatable.dart';
 import 'package:isar/isar.dart';
 
 part 'series_item.g.dart';
 
 /// Elemento de Serie
 @collection
-class SeriesItem extends Equatable {
+class SeriesItem {
   Id id = Isar.autoIncrement;
   
   @Index()
@@ -105,18 +104,11 @@ class SeriesItem extends Equatable {
   }
 
   @override
-  @ignore
-  List<Object?> get props => [
-        seriesId,
-        name,
-        cover,
-        plot,
-        cast,
-        director,
-        genre,
-        releaseDate,
-        rating,
-        categoryId,
-        episodeRunTime,
-      ];
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    return other is SeriesItem && other.seriesId == seriesId;
+  }
+
+  @override
+  int get hashCode => seriesId.hashCode;
 }

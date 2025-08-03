@@ -1,11 +1,10 @@
-import 'package:equatable/equatable.dart';
 import 'package:isar/isar.dart';
 
 part 'vod_item.g.dart';
 
 /// Elemento de Video on Demand
 @collection
-class VodItem extends Equatable {
+class VodItem {
   Id id = Isar.autoIncrement;
   
   @Index()
@@ -105,18 +104,11 @@ class VodItem extends Equatable {
   }
 
   @override
-  @ignore
-  List<Object?> get props => [
-        streamId,
-        name,
-        streamIcon,
-        plot,
-        director,
-        cast,
-        genre,
-        releaseDate,
-        rating,
-        categoryId,
-        containerExtension,
-      ];
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    return other is VodItem && other.streamId == streamId;
+  }
+
+  @override
+  int get hashCode => streamId.hashCode;
 }

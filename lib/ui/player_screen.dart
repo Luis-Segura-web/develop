@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:video_player/video_player.dart';
-import 'package:flutter_vlc_player/flutter_vlc_player.dart';
+// import 'package:flutter_vlc_player/flutter_vlc_player.dart'; // Disabled due to SDK compatibility
 import '../models/service_profile.dart';
 import '../models/stream_item.dart';
 import '../player/player_selector.dart';
@@ -117,6 +117,8 @@ class _PlayerScreenState extends State<PlayerScreen> {
           break;
           
         case PlayerEngine.vlc:
+          // VLC player disabled due to SDK compatibility
+          /*
           final controller = _playerSelector.activeController as VlcPlayerController?;
           if (controller != null && controller.value.isInitialized) {
             // VLC puede proporcionar información más detallada del stream
@@ -128,6 +130,10 @@ class _PlayerScreenState extends State<PlayerScreen> {
             _currentResolution = 'Detectando...';
             _currentCodec = 'N/A';
           }
+          */
+          _currentBitrate = 'N/A';
+          _currentResolution = 'N/A';
+          _currentCodec = 'N/A';
           break;
       }
     });
@@ -305,6 +311,15 @@ class _PlayerScreenState extends State<PlayerScreen> {
 
   /// Construir reproductor VLC
   Widget _buildVLCPlayer() {
+    // VLC player disabled due to SDK compatibility
+    return const Center(
+      child: Text(
+        'Reproductor VLC no disponible\n(Incompatibilidad de SDK)',
+        textAlign: TextAlign.center,
+        style: TextStyle(color: Colors.white),
+      ),
+    );
+    /*
     final controller = _playerSelector.activeController as VlcPlayerController?;
     
     if (controller == null) {
@@ -320,7 +335,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
         child: CircularProgressIndicator(color: Colors.white),
       ),
     );
-  }
+    */
 
   /// Construir controles superpuestos
   Widget _buildOverlayControls() {

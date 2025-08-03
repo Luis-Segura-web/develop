@@ -5,7 +5,7 @@ publish_to: 'none'
 version: 1.0.0+1
 
 environment:
-  sdk: ^3.8.1
+  sdk: ^3.5.0
 
 dependencies:
   flutter:
@@ -15,7 +15,7 @@ dependencies:
   cupertino_icons: ^1.0.8
   
   # Cliente Xtream Codes
-  xtream_code_client: ^1.5.0
+  xtream_code_client: ^1.4.0
   
   # HTTP y conectividad
   http: ^1.2.2
@@ -35,7 +35,7 @@ dependencies:
   chewie: ^1.8.5
 
   # Motores de reproducción dual: ExoPlayer (video_player) y libVLC
-  flutter_vlc_player: ^7.4.3
+  # flutter_vlc_player: ^7.4.3  # Disabled due to SDK version incompatibility
   hive: ^2.2.3
   hive_flutter: ^1.1.0
   isar: ^3.1.0+1

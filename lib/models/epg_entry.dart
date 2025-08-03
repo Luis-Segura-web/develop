@@ -1,11 +1,10 @@
-import 'package:equatable/equatable.dart';
 import 'package:isar/isar.dart';
 
 part 'epg_entry.g.dart';
 
 /// Entrada de Guía Electrónica de Programación
 @collection
-class EpgEntry extends Equatable {
+class EpgEntry {
   Id id = Isar.autoIncrement;
   
   @Index()
@@ -78,12 +77,13 @@ class EpgEntry extends Equatable {
   }
 
   @override
-  @ignore
-  List<Object?> get props => [
-        channelId,
-        title,
-        description,
-        startTime,
-        endTime,
-      ];
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    return other is EpgEntry && 
+           other.channelId == channelId && 
+           other.startTime == startTime;
+  }
+
+  @override
+  int get hashCode => Object.hash(channelId, startTime);
 }

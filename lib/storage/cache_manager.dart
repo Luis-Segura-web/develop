@@ -336,7 +336,7 @@ class CacheManager {
             .deleteAll();
         
         // Limpiar EPG expirado
-        await _isarInstance.epgEntries
+        await _isarInstance.epgEntrys
             .where()
             .cacheExpiryLessThan(now)
             .deleteAll();
@@ -362,7 +362,7 @@ class CacheManager {
       stats['channels'] = await _isarInstance.channels.count();
       stats['vod_items'] = await _isarInstance.vodItems.count();
       stats['series_items'] = await _isarInstance.seriesItems.count();
-      stats['epg_entries'] = await _isarInstance.epgEntries.count();
+      stats['epg_entries'] = await _isarInstance.epgEntrys.count();
       
       return stats;
     } catch (e) {
@@ -395,30 +395,39 @@ class CacheManager {
 }
 
 /// Implementación de LRU Map
-class LRUMap<K, V> extends LinkedHashMap<K, V> {
+class LRUMap<K, V> {
   final int maximumSize;
+  final LinkedHashMap<K, V> _map = LinkedHashMap<K, V>();
 
   LRUMap({required this.maximumSize});
 
-  @override
   V? operator [](Object? key) {
-    final value = super[key];
+    final value = _map.remove(key);
     if (value != null && key != null) {
-      // Mover al final para LRU
-      super.remove(key);
-      super[key as K] = value;
+      _map[key as K] = value; // Move to end for LRU
     }
     return value;
   }
 
-  @override
   void operator []=(K key, V value) {
-    super.remove(key);
-    super[key] = value;
+    _map.remove(key);
+    _map[key] = value;
     
-    // Remover elementos más antiguos si excede el tamaño máximo
-    while (length > maximumSize) {
-      remove(keys.first);
+    // Remove oldest entries if exceeding maximum size
+    while (_map.length > maximumSize) {
+      _map.remove(_map.keys.first);
     }
   }
+
+  bool containsKey(Object? key) => _map.containsKey(key);
+  
+  V? remove(Object? key) => _map.remove(key);
+  
+  void clear() => _map.clear();
+  
+  int get length => _map.length;
+  
+  bool get isEmpty => _map.isEmpty;
+  
+  bool get isNotEmpty => _map.isNotEmpty;
 }

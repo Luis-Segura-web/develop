@@ -1,11 +1,10 @@
-import 'package:equatable/equatable.dart';
 import 'package:isar/isar.dart';
 
 part 'channel.g.dart';
 
 /// Canal de televisión en vivo
 @collection
-class Channel extends Equatable {
+class Channel {
   Id id = Isar.autoIncrement;
   
   @Index()
@@ -89,15 +88,11 @@ class Channel extends Equatable {
   }
 
   @override
-  @ignore
-  List<Object?> get props => [
-        streamId,
-        name,
-        streamIcon,
-        categoryId,
-        streamType,
-        hasArchive,
-        created,
-        addedOn,
-      ];
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    return other is Channel && other.streamId == streamId;
+  }
+
+  @override
+  int get hashCode => streamId.hashCode;
 }
