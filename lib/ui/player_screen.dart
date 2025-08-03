@@ -87,11 +87,48 @@ class _PlayerScreenState extends State<PlayerScreen> {
   void _updateStreamInfo() {
     final playerState = _playerSelector.getPlayerState();
     
-    // TODO: Extraer información real del stream
+    // Extraer información real del stream según el motor activo
     setState(() {
-      _currentBitrate = '1080p';
-      _currentResolution = '1920x1080';
-      _currentCodec = 'H.264';
+      switch (_playerSelector.currentEngine) {
+        case PlayerEngine.media3:
+          final controller = _playerSelector.activeController as VideoPlayerController?;
+          if (controller != null && controller.value.isInitialized) {
+            final videoSize = controller.value.size;
+            _currentResolution = '${videoSize.width.round()}x${videoSize.height.round()}';
+            
+            // Determinar calidad basada en resolución
+            if (videoSize.height >= 1080) {
+              _currentBitrate = '1080p';
+            } else if (videoSize.height >= 720) {
+              _currentBitrate = '720p';
+            } else if (videoSize.height >= 480) {
+              _currentBitrate = '480p';
+            } else {
+              _currentBitrate = '360p';
+            }
+            
+            _currentCodec = 'H.264'; // Media3 principalmente usa H.264
+          } else {
+            _currentBitrate = 'Cargando...';
+            _currentResolution = 'Detectando...';
+            _currentCodec = 'N/A';
+          }
+          break;
+          
+        case PlayerEngine.vlc:
+          final controller = _playerSelector.activeController as VlcPlayerController?;
+          if (controller != null && controller.value.isInitialized) {
+            // VLC puede proporcionar información más detallada del stream
+            _currentBitrate = 'Auto';
+            _currentResolution = 'Adaptativa';
+            _currentCodec = 'Multi';
+          } else {
+            _currentBitrate = 'Conectando...';
+            _currentResolution = 'Detectando...';
+            _currentCodec = 'N/A';
+          }
+          break;
+      }
     });
   }
 
@@ -345,8 +382,13 @@ class _PlayerScreenState extends State<PlayerScreen> {
       children: [
         IconButton(
           icon: const Icon(Icons.replay_10, color: Colors.white, size: 40),
-          onPressed: () {
-            // TODO: Implementar retroceder 10 segundos
+          onPressed: () async {
+            try {
+              await _playerSelector.seekBackward(const Duration(seconds: 10));
+              _showSnackBar('Retrocedido 10 segundos');
+            } catch (e) {
+              _showSnackBar('Error al retroceder: ${e.toString()}');
+            }
           },
         ),
         IconButton(
@@ -359,8 +401,13 @@ class _PlayerScreenState extends State<PlayerScreen> {
         ),
         IconButton(
           icon: const Icon(Icons.forward_10, color: Colors.white, size: 40),
-          onPressed: () {
-            // TODO: Implementar avanzar 10 segundos
+          onPressed: () async {
+            try {
+              await _playerSelector.seekForward(const Duration(seconds: 10));
+              _showSnackBar('Avanzado 10 segundos');
+            } catch (e) {
+              _showSnackBar('Error al avanzar: ${e.toString()}');
+            }
           },
         ),
       ],

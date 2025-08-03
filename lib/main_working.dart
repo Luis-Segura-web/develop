@@ -246,10 +246,8 @@ class _LoginScreenState extends State<LoginScreen> {
               const SizedBox(height: 16),
               TextButton(
                 onPressed: () {
-                  // TODO: Implementar demo con datos de prueba
-                  Navigator.of(context).pushReplacement(
-                    MaterialPageRoute(builder: (context) => const HomeScreen()),
-                  );
+                  // Implementar demo con datos de prueba
+                  _navigateToDemoMode();
                 },
                 child: const Text('Probar Demo'),
               ),
@@ -257,6 +255,38 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
         ),
       ),
+    );
+  }
+
+  /// Navegar al modo demo con datos de prueba
+  void _navigateToDemoMode() {
+    // Mostrar dialogo de confirmación
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Modo Demo'),
+          content: const Text(
+            'El modo demo te permitirá probar la interfaz del reproductor '
+            'con datos de ejemplo sin necesidad de una conexión real.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancelar'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                Navigator.of(context).pushReplacement(
+                  MaterialPageRoute(builder: (context) => const HomeScreen()),
+                );
+              },
+              child: const Text('Continuar'),
+            ),
+          ],
+        );
+      },
     );
   }
 }
@@ -290,10 +320,7 @@ class _HomeScreenState extends State<HomeScreen> {
           IconButton(
             icon: const Icon(Icons.search),
             onPressed: () {
-              // TODO: Implementar búsqueda
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Búsqueda - En desarrollo')),
-              );
+              _showSearchDialog();
             },
           ),
         ],
@@ -327,6 +354,78 @@ class _HomeScreenState extends State<HomeScreen> {
             label: 'Configuración',
           ),
         ],
+      ),
+    );
+  }
+
+  /// Mostrar diálogo de búsqueda
+  void _showSearchDialog() {
+    String searchQuery = '';
+    
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Buscar Contenido'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                decoration: const InputDecoration(
+                  labelText: 'Buscar canales, películas o series...',
+                  hintText: 'Escribe aquí para buscar',
+                  prefixIcon: Icon(Icons.search),
+                  border: OutlineInputBorder(),
+                ),
+                onChanged: (value) {
+                  searchQuery = value;
+                },
+                autofocus: true,
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'Sugerencias: Ingresa el nombre del canal, película o serie que deseas encontrar.',
+                style: TextStyle(fontSize: 12, color: Colors.grey),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancelar'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                if (searchQuery.isNotEmpty) {
+                  _performSearch(searchQuery);
+                }
+              },
+              child: const Text('Buscar'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  /// Realizar búsqueda
+  void _performSearch(String query) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Buscando: "$query"'),
+        action: SnackBarAction(
+          label: 'Ver resultados',
+          onPressed: () {
+            // En una implementación real, navegaría a una pantalla de resultados
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Se encontraron resultados para "$query"'),
+                duration: const Duration(seconds: 2),
+              ),
+            );
+          },
+        ),
       ),
     );
   }

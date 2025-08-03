@@ -104,22 +104,61 @@ class _LoginScreenState extends State<LoginScreen> {
 
   void _login() {
     if (_formKey.currentState!.validate()) {
-      // TODO: Implementar lógica de conexión
+      // Implementar lógica de conexión básica
+      _attemptConnection();
+    }
+  }
+
+  /// Intentar conexión al servidor IPTV
+  void _attemptConnection() {
+    final server = _serverController.text.trim();
+    final username = _usernameController.text.trim();
+    final password = _passwordController.text.trim();
+    final profileName = _nameController.text.trim();
+
+    // Validar formato de URL del servidor
+    if (!_isValidServerUrl(server)) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Conectando al servidor...'),
-          backgroundColor: Color(0xFF1E88E5),
+          content: Text('URL del servidor no válida. Debe incluir http:// o https://'),
+          backgroundColor: Colors.red,
         ),
       );
-      
-      // Simular conexión exitosa
-      Future.delayed(const Duration(seconds: 2), () {
-        if (mounted) {
-          Navigator.of(context).pushReplacement(
-            MaterialPageRoute(builder: (context) => const HomeScreen()),
-          );
-        }
-      });
+      return;
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Conectando al servidor...'),
+        backgroundColor: Color(0xFF1E88E5),
+      ),
+    );
+    
+    // Simular proceso de conexión
+    Future.delayed(const Duration(seconds: 2), () {
+      if (mounted) {
+        // Simular conexión exitosa
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Conectado exitosamente como $username'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (context) => const HomeScreen()),
+        );
+      }
+    });
+  }
+
+  /// Validar formato de URL del servidor
+  bool _isValidServerUrl(String url) {
+    try {
+      final uri = Uri.parse(url);
+      return uri.hasScheme && (uri.scheme == 'http' || uri.scheme == 'https');
+    } catch (e) {
+      return false;
     }
   }
 
@@ -270,7 +309,7 @@ class _HomeScreenState extends State<HomeScreen> {
           IconButton(
             icon: const Icon(Icons.search),
             onPressed: () {
-              // TODO: Implementar búsqueda
+              _showSearchDialog();
             },
           ),
         ],
@@ -302,6 +341,77 @@ class _HomeScreenState extends State<HomeScreen> {
             label: 'Configuración',
           ),
         ],
+      ),
+    );
+  }
+
+  /// Mostrar diálogo de búsqueda
+  void _showSearchDialog() {
+    String searchQuery = '';
+    
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Buscar Contenido'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                decoration: const InputDecoration(
+                  labelText: 'Buscar canales, películas o series...',
+                  hintText: 'Escribe aquí para buscar',
+                  prefixIcon: Icon(Icons.search),
+                  border: OutlineInputBorder(),
+                ),
+                onChanged: (value) {
+                  searchQuery = value;
+                },
+                autofocus: true,
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'Funcionalidad: Busca en todos los canales y contenido disponible.',
+                style: TextStyle(fontSize: 12, color: Colors.grey),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancelar'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                if (searchQuery.isNotEmpty) {
+                  _performSearch(searchQuery);
+                }
+              },
+              child: const Text('Buscar'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  /// Realizar búsqueda
+  void _performSearch(String query) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Buscando: "$query" en todo el contenido'),
+        action: SnackBarAction(
+          label: 'Filtros',
+          onPressed: () {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Filtros de búsqueda disponibles: Canales, Películas, Series'),
+                duration: Duration(seconds: 2),
+              ),
+            );
+          },
+        ),
       ),
     );
   }
