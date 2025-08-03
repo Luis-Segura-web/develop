@@ -1,0 +1,63 @@
+name: reproductor_iptv
+description: "Reproductor IPTV completo con soporte Xtream Codes en Flutter"
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.8.1
+
+dependencies:
+  http: ^0.13.5
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+  
+  # Cliente Xtream Codes
+  xtream_code_client: ^1.5.0
+  
+  # HTTP y conectividad
+  http: ^1.2.2
+  dio: ^5.7.0
+  
+  # Gestión de estado simple
+  equatable: ^2.0.5
+  
+  # Almacenamiento local básico
+  shared_preferences: ^2.3.2
+  
+  # Cache de imágenes
+  cached_network_image: ^3.4.1
+  
+  # Reproductor de video
+  video_player: ^2.9.2
+  chewie: ^1.8.5
+
+  # Motores de reproducción dual: ExoPlayer (video_player) y libVLC
+  flutter_vlc_player: ^8.0.0
+
+  # Almacenamiento local y seguro
+  hive: ^2.2.3
+  hive_flutter: ^1.1.0
+  flutter_secure_storage: ^8.0.0
+  path_provider: ^2.0.11
+
+  # Gestión de estado (BLoC)
+  flutter_bloc: ^8.1.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+flutter:
+  uses-material-design: true
+  generate: true
+  
+  # Recursos para la aplicación
+  assets:
+    - assets/images/
+    - assets/icons/
+    - assets/logos/

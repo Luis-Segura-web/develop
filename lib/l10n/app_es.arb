@@ -1,0 +1,143 @@
+{
+  "@@locale": "es",
+  "appTitle": "Reproductor IPTV",
+  "@appTitle": {
+    "description": "Título de la aplicación"
+  },
+  "welcome": "Bienvenido",
+  "@welcome": {
+    "description": "Mensaje de bienvenida"
+  },
+  "login": "Iniciar Sesión",
+  "@login": {
+    "description": "Botón de inicio de sesión"
+  },
+  "serverUrl": "URL del Servidor",
+  "@serverUrl": {
+    "description": "Etiqueta para la URL del servidor"
+  },
+  "username": "Usuario",
+  "@username": {
+    "description": "Etiqueta para nombre de usuario"
+  },
+  "password": "Contraseña",
+  "@password": {
+    "description": "Etiqueta para contraseña"
+  },
+  "port": "Puerto",
+  "@port": {
+    "description": "Etiqueta para puerto"
+  },
+  "connectionName": "Nombre de la Conexión",
+  "@connectionName": {
+    "description": "Etiqueta para nombre personalizado de conexión"
+  },
+  "addServer": "Agregar Servidor",
+  "@addServer": {
+    "description": "Botón para agregar nuevo servidor"
+  },
+  "liveChannels": "Canales en Vivo",
+  "@liveChannels": {
+    "description": "Sección de canales en vivo"
+  },
+  "movies": "Películas",
+  "@movies": {
+    "description": "Sección de películas"
+  },
+  "series": "Series",
+  "@series": {
+    "description": "Sección de series"
+  },
+  "favorites": "Favoritos",
+  "@favorites": {
+    "description": "Sección de favoritos"
+  },
+  "search": "Buscar",
+  "@search": {
+    "description": "Función de búsqueda"
+  },
+  "settings": "Configuración",
+  "@settings": {
+    "description": "Página de configuración"
+  },
+  "profile": "Perfil",
+  "@profile": {
+    "description": "Perfil de usuario"
+  },
+  "history": "Historial",
+  "@history": {
+    "description": "Historial de reproducción"
+  },
+  "continueWatching": "Continuar Viendo",
+  "@continueWatching": {
+    "description": "Lista de contenido para continuar viendo"
+  },
+  "categories": "Categorías",
+  "@categories": {
+    "description": "Lista de categorías"
+  },
+  "epg": "Guía de Programación",
+  "@epg": {
+    "description": "Guía electrónica de programación"
+  },
+  "nowPlaying": "Reproduciendo Ahora",
+  "@nowPlaying": {
+    "description": "Programa actualmente en reproducción"
+  },
+  "nextUp": "A Continuación",
+  "@nextUp": {
+    "description": "Próximo programa"
+  },
+  "invalidCredentials": "Credenciales inválidas",
+  "@invalidCredentials": {
+    "description": "Error de credenciales incorrectas"
+  },
+  "connectionError": "Error de conexión",
+  "@connectionError": {
+    "description": "Error al conectar con el servidor"
+  },
+  "retry": "Reintentar",
+  "@retry": {
+    "description": "Botón de reintentar"
+  },
+  "cancel": "Cancelar",
+  "@cancel": {
+    "description": "Botón de cancelar"
+  },
+  "save": "Guardar",
+  "@save": {
+    "description": "Botón de guardar"
+  },
+  "delete": "Eliminar",
+  "@delete": {
+    "description": "Botón de eliminar"
+  },
+  "edit": "Editar",
+  "@edit": {
+    "description": "Botón de editar"
+  },
+  "parentalControl": "Control Parental",
+  "@parentalControl": {
+    "description": "Configuración de control parental"
+  },
+  "enterPin": "Ingrese PIN",
+  "@enterPin": {
+    "description": "Solicitud de ingreso de PIN"
+  },
+  "createPin": "Crear PIN",
+  "@createPin": {
+    "description": "Crear nuevo PIN"
+  },
+  "quality": "Calidad",
+  "@quality": {
+    "description": "Configuración de calidad de video"
+  },
+  "subtitles": "Subtítulos",
+  "@subtitles": {
+    "description": "Configuración de subtítulos"
+  },
+  "audioTrack": "Pista de Audio",
+  "@audioTrack": {
+    "description": "Selección de pista de audio"
+  }
+}
