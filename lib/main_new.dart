@@ -382,9 +382,160 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 }
 
-// Pantalla principal temporal
-class HomeScreen extends StatelessWidget {
+// Páginas simples para navegación
+class LiveChannelsPage extends StatelessWidget {
+  const LiveChannelsPage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return const Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.live_tv, size: 64, color: AppTheme.primaryColor),
+          SizedBox(height: 16),
+          Text(
+            'Canales en Vivo',
+            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+          ),
+          SizedBox(height: 8),
+          Text(
+            'Aquí se mostrarán los canales de televisión en vivo',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: Colors.grey),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class MoviesPage extends StatelessWidget {
+  const MoviesPage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return const Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.movie, size: 64, color: AppTheme.primaryColor),
+          SizedBox(height: 16),
+          Text(
+            'Películas',
+            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+          ),
+          SizedBox(height: 8),
+          Text(
+            'Aquí se mostrarán las películas disponibles',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: Colors.grey),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class SeriesPage extends StatelessWidget {
+  const SeriesPage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return const Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.tv, size: 64, color: AppTheme.primaryColor),
+          SizedBox(height: 16),
+          Text(
+            'Series',
+            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+          ),
+          SizedBox(height: 8),
+          Text(
+            'Aquí se mostrarán las series disponibles',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: Colors.grey),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class FavoritesPage extends StatelessWidget {
+  const FavoritesPage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return const Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.favorite, size: 64, color: AppTheme.primaryColor),
+          SizedBox(height: 16),
+          Text(
+            'Favoritos',
+            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+          ),
+          SizedBox(height: 8),
+          Text(
+            'Aquí se mostrarán tus contenidos favoritos',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: Colors.grey),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class SettingsPage extends StatelessWidget {
+  const SettingsPage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return const Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.settings, size: 64, color: AppTheme.primaryColor),
+          SizedBox(height: 16),
+          Text(
+            'Ajustes',
+            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+          ),
+          SizedBox(height: 8),
+          Text(
+            'Aquí se mostrarán las configuraciones de la aplicación',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: Colors.grey),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// Pantalla principal con navegación
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  int _currentIndex = 0;
+
+  final List<Widget> _pages = const [
+    LiveChannelsPage(),
+    MoviesPage(),
+    SeriesPage(),
+    FavoritesPage(),
+    SettingsPage(),
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -392,14 +543,15 @@ class HomeScreen extends StatelessWidget {
       appBar: AppBar(
         title: const Text('Reproductor IPTV'),
       ),
-      body: const Center(
-        child: Text(
-          'Pantalla principal - En construcción',
-          style: TextStyle(fontSize: 18),
-        ),
-      ),
+      body: _pages[_currentIndex],
       bottomNavigationBar: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
+        currentIndex: _currentIndex,
+        onTap: (index) {
+          setState(() {
+            _currentIndex = index;
+          });
+        },
         items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.live_tv),
