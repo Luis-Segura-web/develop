@@ -131,8 +131,29 @@ class _SplashScreenState extends State<SplashScreen> {
 }
 
 // Pantalla de login temporal
-class LoginScreen extends StatelessWidget {
+class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
+
+  @override
+  State<LoginScreen> createState() => _LoginScreenState();
+}
+
+class _LoginScreenState extends State<LoginScreen> {
+  final _formKey = GlobalKey<FormState>();
+  final _serverController = TextEditingController();
+  final _portController = TextEditingController(text: '8080');
+  final _usernameController = TextEditingController();
+  final _passwordController = TextEditingController();
+  bool _isLoading = false;
+
+  @override
+  void dispose() {
+    _serverController.dispose();
+    _portController.dispose();
+    _usernameController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -140,57 +161,222 @@ class LoginScreen extends StatelessWidget {
       appBar: AppBar(
         title: const Text('Iniciar Sesión'),
       ),
-      body: const Center(
+      body: Center(
         child: Padding(
-          padding: EdgeInsets.all(16.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                Icons.account_circle,
-                size: 80,
-                color: AppTheme.primaryColor,
-              ),
-              SizedBox(height: 30),
-              TextField(
-                decoration: InputDecoration(
-                  labelText: 'URL del Servidor',
-                  prefixIcon: Icon(Icons.link),
+          padding: const EdgeInsets.all(16.0),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(
+                  Icons.account_circle,
+                  size: 80,
+                  color: AppTheme.primaryColor,
                 ),
-              ),
-              SizedBox(height: 16),
-              TextField(
-                decoration: InputDecoration(
-                  labelText: 'Puerto',
-                  prefixIcon: Icon(Icons.settings_ethernet),
+                const SizedBox(height: 30),
+                TextFormField(
+                  controller: _serverController,
+                  decoration: const InputDecoration(
+                    labelText: 'URL del Servidor',
+                    hintText: 'http://tu-servidor.com',
+                    prefixIcon: Icon(Icons.link),
+                    border: OutlineInputBorder(),
+                  ),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Por favor ingrese la URL del servidor';
+                    }
+                    return null;
+                  },
                 ),
-              ),
-              SizedBox(height: 16),
-              TextField(
-                decoration: InputDecoration(
-                  labelText: 'Usuario',
-                  prefixIcon: Icon(Icons.person),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _portController,
+                  decoration: const InputDecoration(
+                    labelText: 'Puerto',
+                    prefixIcon: Icon(Icons.settings_ethernet),
+                    border: OutlineInputBorder(),
+                  ),
+                  keyboardType: TextInputType.number,
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Por favor ingrese el puerto';
+                    }
+                    final port = int.tryParse(value);
+                    if (port == null || port < 1 || port > 65535) {
+                      return 'Puerto inválido (1-65535)';
+                    }
+                    return null;
+                  },
                 ),
-              ),
-              SizedBox(height: 16),
-              TextField(
-                decoration: InputDecoration(
-                  labelText: 'Contraseña',
-                  prefixIcon: Icon(Icons.lock),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _usernameController,
+                  decoration: const InputDecoration(
+                    labelText: 'Usuario',
+                    prefixIcon: Icon(Icons.person),
+                    border: OutlineInputBorder(),
+                  ),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Por favor ingrese su usuario';
+                    }
+                    return null;
+                  },
                 ),
-                obscureText: true,
-              ),
-              SizedBox(height: 30),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: null, // TODO: Implementar login
-                  child: Text('Conectar'),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _passwordController,
+                  decoration: const InputDecoration(
+                    labelText: 'Contraseña',
+                    prefixIcon: Icon(Icons.lock),
+                    border: OutlineInputBorder(),
+                  ),
+                  obscureText: true,
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Por favor ingrese su contraseña';
+                    }
+                    return null;
+                  },
                 ),
-              ),
-            ],
+                const SizedBox(height: 30),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: _isLoading ? null : _handleLogin,
+                    child: _isLoading
+                        ? const Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              ),
+                              SizedBox(width: 10),
+                              Text('Conectando...'),
+                            ],
+                          )
+                        : const Text('Conectar'),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                TextButton(
+                  onPressed: _isLoading ? null : _showDemoDialog,
+                  child: const Text('Probar Demo'),
+                ),
+              ],
+            ),
           ),
         ),
+      ),
+    );
+  }
+
+  /// Manejar proceso de login
+  Future<void> _handleLogin() async {
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
+      // Obtener valores de los campos
+      final server = _serverController.text.trim();
+      final port = _portController.text.trim();
+      final username = _usernameController.text.trim();
+      final password = _passwordController.text.trim();
+
+      // Construir URL completa
+      String serverUrl = server;
+      if (!server.startsWith('http://') && !server.startsWith('https://')) {
+        serverUrl = 'http://$server';
+      }
+      if (port.isNotEmpty) {
+        serverUrl = '$serverUrl:$port';
+      }
+
+      // Simular proceso de conexión
+      await Future.delayed(const Duration(seconds: 2));
+
+      // Validación básica de credenciales
+      if (username.length >= 3 && password.length >= 3) {
+        if (mounted) {
+          _showSuccessMessage('¡Conexión exitosa a $serverUrl!');
+          Future.delayed(const Duration(seconds: 1), () {
+            if (mounted) {
+              Navigator.of(context).pushReplacement(
+                MaterialPageRoute(builder: (context) => const HomeScreen()),
+              );
+            }
+          });
+        }
+      } else {
+        _showErrorMessage('Usuario y contraseña deben tener al menos 3 caracteres');
+      }
+    } catch (e) {
+      _showErrorMessage('Error de conexión: ${e.toString()}');
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  /// Mostrar diálogo de demo
+  void _showDemoDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Modo Demo'),
+          content: const Text(
+            'El modo demo te permite probar la aplicación con datos de ejemplo '
+            'sin necesidad de una conexión real al servidor IPTV.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancelar'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                Navigator.of(context).pushReplacement(
+                  MaterialPageRoute(builder: (context) => const HomeScreen()),
+                );
+              },
+              child: const Text('Continuar'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  /// Mostrar mensaje de éxito
+  void _showSuccessMessage(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.green,
+        duration: const Duration(seconds: 2),
+      ),
+    );
+  }
+
+  /// Mostrar mensaje de error
+  void _showErrorMessage(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red,
+        duration: const Duration(seconds: 3),
       ),
     );
   }

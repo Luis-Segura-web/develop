@@ -4,6 +4,7 @@ import '../widgets/channel_search_bar.dart';
 import '../widgets/category_list.dart';
 import '../../video_player/screens/video_player_screen.dart';
 import '../../video_player/widgets/mini_video_player.dart';
+import '../../../services/favorites_service.dart';
 
 class LiveChannelsScreen extends StatefulWidget {
   const LiveChannelsScreen({super.key});
@@ -15,6 +16,7 @@ class LiveChannelsScreen extends StatefulWidget {
 class _LiveChannelsScreenState extends State<LiveChannelsScreen> {
   final _authService = XtreamAuthService();
   final _searchController = TextEditingController();
+  final _favoritesService = FavoritesService.instance;
 
   // Estados
   bool _isLoading = false;
@@ -28,11 +30,14 @@ class _LiveChannelsScreenState extends State<LiveChannelsScreen> {
   Map<String, dynamic>? _selectedChannel;
   String? _expandedCategoryId;
   List<Map<String, dynamic>> _filteredChannels = [];
+  final Set<String> _favoriteChannels = <String>{};
+  final Map<String, String> _epgData = <String, String>{};
 
   @override
   void initState() {
     super.initState();
     _connectAndLoadData();
+    _loadFavorites(); // Cargar favoritos al inicializar
   }
 
   @override
@@ -173,7 +178,7 @@ class _LiveChannelsScreenState extends State<LiveChannelsScreen> {
           IconButton(
             icon: const Icon(Icons.settings, color: Colors.white),
             onPressed: () {
-              // TODO: Ir a configuración
+              _navigateToSettings();
             },
           ),
         ],
@@ -354,7 +359,7 @@ class _LiveChannelsScreenState extends State<LiveChannelsScreen> {
           children: [
             const SizedBox(height: 4),
             Text(
-              'Ahora: Programación en vivo', // TODO: Implementar EPG
+              _getEpgInfo(channel), // Implementar EPG
               style: TextStyle(
                 color: Colors.grey[400],
                 fontSize: 12,
@@ -381,17 +386,15 @@ class _LiveChannelsScreenState extends State<LiveChannelsScreen> {
           ],
         ),
         trailing: IconButton(
-          icon: const Icon(Icons.favorite_border, color: Colors.white),
-          onPressed: () {
-            // TODO: Implementar favoritos
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('Canal ${channel['name']} agregado a favoritos'),
-                backgroundColor: Colors.green,
-                duration: const Duration(seconds: 1),
-              ),
-            );
-          },
+          icon: Icon(
+            _favoriteChannels.contains(channel['stream_id']?.toString())
+                ? Icons.favorite
+                : Icons.favorite_border,
+            color: _favoriteChannels.contains(channel['stream_id']?.toString())
+                ? Colors.red
+                : Colors.white,
+          ),
+          onPressed: () => _toggleChannelFavorite(channel),
         ),
         onTap: () => _onChannelSelected(channel),
       ),
@@ -422,5 +425,215 @@ class _LiveChannelsScreenState extends State<LiveChannelsScreen> {
         ),
       );
     }
+  }
+
+  /// Navegar a la pantalla de configuración
+  void _navigateToSettings() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Configuración'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.dns),
+                title: const Text('Gestión de Servidores'),
+                subtitle: const Text('Configurar conexiones IPTV'),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  _showMessage('Funcionalidad: Gestión de servidores IPTV');
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.video_settings),
+                title: const Text('Configuración de Reproductor'),
+                subtitle: const Text('Motor, calidad, controles'),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  _showMessage('Funcionalidad: Configuración del reproductor');
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.favorite),
+                title: const Text('Gestión de Favoritos'),
+                subtitle: const Text('Ver y organizar favoritos'),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  _showFavoritesManagement();
+                },
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cerrar'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  /// Obtener información de EPG para un canal
+  String _getEpgInfo(Map<String, dynamic> channel) {
+    final streamId = channel['stream_id']?.toString() ?? '';
+    final epgChannelId = channel['epg_channel_id']?.toString();
+    
+    // Simulación de datos EPG - en implementación real vendría del servidor
+    if (epgChannelId != null && _epgData.containsKey(epgChannelId)) {
+      return _epgData[epgChannelId]!;
+    }
+    
+    // Generar información EPG simulada basada en la hora actual
+    final now = DateTime.now();
+    final hour = now.hour;
+    
+    if (hour >= 6 && hour < 12) {
+      return 'Ahora: Programación Matutina';
+    } else if (hour >= 12 && hour < 18) {
+      return 'Ahora: Programación Vespertina';
+    } else if (hour >= 18 && hour < 22) {
+      return 'Ahora: Programación Prime Time';
+    } else {
+      return 'Ahora: Programación Nocturna';
+    }
+  }
+
+  /// Alternar favorito de canal
+  Future<void> _toggleChannelFavorite(Map<String, dynamic> channel) async {
+    try {
+      final streamId = channel['stream_id']?.toString() ?? '';
+      final channelName = channel['name'] ?? 'Canal sin nombre';
+      
+      if (streamId.isEmpty) {
+        _showMessage('Error: ID de canal inválido', isError: true);
+        return;
+      }
+
+      final wasToggled = await _favoritesService.toggleFavorite(channel);
+      
+      if (wasToggled) {
+        await _loadFavorites(); // Recargar favoritos
+        
+        final isFavorite = _favoriteChannels.contains(streamId);
+        _showMessage(
+          isFavorite 
+              ? 'Canal "$channelName" agregado a favoritos'
+              : 'Canal "$channelName" removido de favoritos',
+        );
+      } else {
+        _showMessage('Error al actualizar favoritos', isError: true);
+      }
+    } catch (e) {
+      _showMessage('Error: ${e.toString()}', isError: true);
+    }
+  }
+
+  /// Cargar favoritos del almacenamiento
+  Future<void> _loadFavorites() async {
+    try {
+      final favorites = await _favoritesService.getFavorites();
+      if (mounted) {
+        setState(() {
+          _favoriteChannels.clear();
+          _favoriteChannels.addAll(favorites);
+        });
+      }
+    } catch (e) {
+      print('Error al cargar favoritos: $e');
+    }
+  }
+
+  /// Mostrar gestión de favoritos
+  void _showFavoritesManagement() async {
+    try {
+      final favoriteChannels = await _favoritesService.getFavoriteChannels();
+      final stats = await _favoritesService.getFavoritesStats();
+      
+      if (!mounted) return;
+      
+      showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: const Text('Gestión de Favoritos'),
+            content: SizedBox(
+              width: double.maxFinite,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text('Total de favoritos: ${stats['total_favorites']}'),
+                  const SizedBox(height: 16),
+                  if (favoriteChannels.isEmpty)
+                    const Text('No hay canales favoritos')
+                  else
+                    SizedBox(
+                      height: 200,
+                      child: ListView.builder(
+                        itemCount: favoriteChannels.length,
+                        itemBuilder: (context, index) {
+                          final channel = favoriteChannels[index];
+                          return ListTile(
+                            dense: true,
+                            title: Text(channel['name'] ?? 'Sin nombre'),
+                            subtitle: Text('ID: ${channel['stream_id']}'),
+                            trailing: IconButton(
+                              icon: const Icon(Icons.delete, color: Colors.red),
+                              onPressed: () async {
+                                final removed = await _favoritesService.removeFromFavorites(
+                                  channel['stream_id']?.toString() ?? '',
+                                );
+                                if (removed) {
+                                  Navigator.of(context).pop();
+                                  _showMessage('Canal removido de favoritos');
+                                  _loadFavorites();
+                                }
+                              },
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            actions: [
+              if (favoriteChannels.isNotEmpty)
+                TextButton(
+                  onPressed: () async {
+                    await _favoritesService.clearFavorites();
+                    Navigator.of(context).pop();
+                    _showMessage('Todos los favoritos han sido eliminados');
+                    _loadFavorites();
+                  },
+                  child: const Text('Limpiar Todo', style: TextStyle(color: Colors.red)),
+                ),
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('Cerrar'),
+              ),
+            ],
+          );
+        },
+      );
+    } catch (e) {
+      _showMessage('Error al cargar favoritos: ${e.toString()}', isError: true);
+    }
+  }
+
+  /// Mostrar mensaje al usuario
+  void _showMessage(String message, {bool isError = false}) {
+    if (!mounted) return;
+    
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: isError ? Colors.red : Colors.green,
+        duration: const Duration(seconds: 2),
+      ),
+    );
   }
 }

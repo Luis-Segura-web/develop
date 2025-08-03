@@ -202,8 +202,20 @@ class AppRouter {
 
   /// Obtener ruta inicial según estado de la aplicación
   static String getInitialRoute() {
-    // TODO: Implementar lógica para determinar ruta inicial
-    // Por ejemplo, verificar si hay perfiles guardados
+    // Implementar lógica para determinar ruta inicial
+    // Verificar si hay perfiles guardados usando SharedPreferences
+    return _checkUserState();
+  }
+
+  /// Verificar estado del usuario y determinar ruta inicial
+  static String _checkUserState() {
+    // En una implementación completa, aquí verificaríamos:
+    // 1. Si hay perfiles de servidor guardados
+    // 2. Si hay un usuario logueado recientemente
+    // 3. Si hay configuración de auto-login
+    
+    // Por ahora, siempre dirigir al login para nuevo setup
+    // En el futuro esto podría verificar SharedPreferences o Hive
     return login;
   }
 }

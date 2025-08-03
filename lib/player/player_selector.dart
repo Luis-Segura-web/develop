@@ -235,6 +235,33 @@ class PlayerSelector {
     }
   }
 
+  /// Avanzar el video por la duración especificada
+  Future<void> seekForward(Duration duration) async {
+    final state = getPlayerState();
+    if (state['isInitialized'] == true) {
+      final currentPosition = Duration(milliseconds: state['position'] ?? 0);
+      final videoDuration = Duration(milliseconds: state['duration'] ?? 0);
+      final newPosition = currentPosition + duration;
+      
+      // No avanzar más allá de la duración del video
+      final finalPosition = newPosition > videoDuration ? videoDuration : newPosition;
+      await _seekTo(finalPosition);
+    }
+  }
+
+  /// Retroceder el video por la duración especificada
+  Future<void> seekBackward(Duration duration) async {
+    final state = getPlayerState();
+    if (state['isInitialized'] == true) {
+      final currentPosition = Duration(milliseconds: state['position'] ?? 0);
+      final newPosition = currentPosition - duration;
+      
+      // No retroceder antes del inicio del video
+      final finalPosition = newPosition.isNegative ? Duration.zero : newPosition;
+      await _seekTo(finalPosition);
+    }
+  }
+
   /// Pausar reproducción
   Future<void> pause() async {
     switch (_currentEngine) {

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
+import '../../../services/favorites_service.dart';
 
-class CategoryList extends StatelessWidget {
+class CategoryList extends StatefulWidget {
   final List<Map<String, dynamic>> categories;
   final Map<String, List<Map<String, dynamic>>> channelsByCategory;
   final String? expandedCategoryId;
@@ -19,17 +20,46 @@ class CategoryList extends StatelessWidget {
   });
 
   @override
+  State<CategoryList> createState() => _CategoryListState();
+}
+
+class _CategoryListState extends State<CategoryList> {
+  final FavoritesService _favoritesService = FavoritesService.instance;
+  final Set<String> _favoriteChannels = <String>{};
+
+  @override
+  void initState() {
+    super.initState();
+    _loadFavorites();
+  }
+
+  /// Cargar favoritos del almacenamiento
+  Future<void> _loadFavorites() async {
+    try {
+      final favorites = await _favoritesService.getFavorites();
+      if (mounted) {
+        setState(() {
+          _favoriteChannels.clear();
+          _favoriteChannels.addAll(favorites);
+        });
+      }
+    } catch (e) {
+      print('Error al cargar favoritos: $e');
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Container(
       color: Colors.grey[900],
       child: ListView.builder(
-        itemCount: categories.length,
+      itemCount: widget.categories.length,
         itemBuilder: (context, index) {
-          final category = categories[index];
+          final category = widget.categories[index];
           final categoryId = category['category_id']?.toString();
           final categoryName = category['category_name'] ?? 'Categoría sin nombre';
-          final channels = channelsByCategory[categoryId] ?? [];
-          final isExpanded = expandedCategoryId == categoryId;
+          final channels = widget.channelsByCategory[categoryId] ?? [];
+          final isExpanded = widget.expandedCategoryId == categoryId;
 
           return Container(
             margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
@@ -41,7 +71,7 @@ class CategoryList extends StatelessWidget {
               children: [
                 // Header de la categoría
                 InkWell(
-                  onTap: () => onCategoryExpanded(categoryId),
+                onTap: () => widget.onCategoryExpanded(categoryId),
                   borderRadius: BorderRadius.circular(8),
                   child: Container(
                     padding: const EdgeInsets.all(16),
@@ -110,7 +140,7 @@ class CategoryList extends StatelessWidget {
   }
 
   Widget _buildChannelTile(BuildContext context, Map<String, dynamic> channel) {
-    final isSelected = selectedChannel?['stream_id'] == channel['stream_id'];
+    final isSelected = widget.selectedChannel?['stream_id'] == channel['stream_id'];
     
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 1),
@@ -189,28 +219,79 @@ class CategoryList extends StatelessWidget {
           ],
         ),
         trailing: IconButton(
-          icon: const Icon(
-            Icons.favorite_border,
-            color: Colors.white,
+          icon: Icon(
+            _favoriteChannels.contains(channel['stream_id']?.toString())
+                ? Icons.favorite
+                : Icons.favorite_border,
+            color: _favoriteChannels.contains(channel['stream_id']?.toString())
+                ? Colors.red
+                : Colors.white,
             size: 22,
           ),
-          onPressed: () {
-            // TODO: Implementar favoritos
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('Canal ${channel['name']} agregado a favoritos'),
-                backgroundColor: Colors.green,
-                duration: const Duration(seconds: 1),
-              ),
-            );
-          },
+          onPressed: () => _toggleFavorite(channel),
           padding: const EdgeInsets.all(6),
           constraints: const BoxConstraints(
             minWidth: 40,
             minHeight: 40,
           ),
         ),
-        onTap: () => onChannelSelected(channel),
+        onTap: () => widget.onChannelSelected(channel),
+      ),
+    );
+  }
+
+  /// Alternar estado de favorito
+  Future<void> _toggleFavorite(Map<String, dynamic> channel) async {
+    try {
+      final streamId = channel['stream_id']?.toString() ?? '';
+      final channelName = channel['name'] ?? 'Canal sin nombre';
+      
+      if (streamId.isEmpty) {
+        _showMessage('Error: ID de canal inválido', isError: true);
+        return;
+      }
+
+      final wasToggled = await _favoritesService.toggleFavorite(channel);
+      
+      if (wasToggled) {
+        await _loadFavorites(); // Recargar favoritos
+        
+        final isFavorite = _favoriteChannels.contains(streamId);
+        _showMessage(
+          isFavorite 
+              ? 'Canal "$channelName" agregado a favoritos'
+              : 'Canal "$channelName" removido de favoritos',
+        );
+      } else {
+        _showMessage('Error al actualizar favoritos', isError: true);
+      }
+    } catch (e) {
+      _showMessage('Error: ${e.toString()}', isError: true);
+    }
+  }
+
+  /// Mostrar mensaje al usuario
+  void _showMessage(String message, {bool isError = false}) {
+    if (!mounted) return;
+    
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: isError ? Colors.red : Colors.green,
+        duration: const Duration(seconds: 2),
+        action: isError ? null : SnackBarAction(
+          label: 'Ver Favoritos',
+          textColor: Colors.white,
+          onPressed: () {
+            // En una implementación real, navegaría a la pantalla de favoritos
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Funcionalidad: Ver lista completa de favoritos'),
+                duration: Duration(seconds: 1),
+              ),
+            );
+          },
+        ),
       ),
     );
   }
