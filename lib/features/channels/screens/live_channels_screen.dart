@@ -36,14 +36,30 @@ class _LiveChannelsScreenState extends State<LiveChannelsScreen> {
   @override
   void initState() {
     super.initState();
-    _connectAndLoadData();
     _loadFavorites(); // Cargar favoritos al inicializar
+    // NO conectar automáticamente - usar la conexión existente
+    _loadChannelsFromExistingConnection();
   }
 
   @override
   void dispose() {
     _searchController.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadChannelsFromExistingConnection() async {
+    // Verificar si ya hay una conexión activa desde el login
+    if (_authService.isConnected) {
+      setState(() {
+        _isConnected = true;
+      });
+      await _loadCategories();
+    } else {
+      // Si no hay conexión, mostrar mensaje para conectar
+      setState(() {
+        _errorMessage = 'Debe iniciar sesión primero para ver los canales';
+      });
+    }
   }
 
   Future<void> _connectAndLoadData() async {
@@ -163,26 +179,7 @@ class _LiveChannelsScreenState extends State<LiveChannelsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.black,
-      appBar: _showMiniPlayer ? null : AppBar(
-        title: const Text(
-          'Canales en Vivo',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-        ),
-        backgroundColor: const Color(0xFF1E88E5),
-        elevation: 0,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh, color: Colors.white),
-            onPressed: _isLoading ? null : _refreshData,
-          ),
-          IconButton(
-            icon: const Icon(Icons.settings, color: Colors.white),
-            onPressed: () {
-              _navigateToSettings();
-            },
-          ),
-        ],
-      ),
+      // Eliminar AppBar porque ya lo tiene TabHomeScreen
       body: _buildBody(),
     );
   }
@@ -425,56 +422,6 @@ class _LiveChannelsScreenState extends State<LiveChannelsScreen> {
         ),
       );
     }
-  }
-
-  /// Navegar a la pantalla de configuración
-  void _navigateToSettings() {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Configuración'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ListTile(
-                leading: const Icon(Icons.dns),
-                title: const Text('Gestión de Servidores'),
-                subtitle: const Text('Configurar conexiones IPTV'),
-                onTap: () {
-                  Navigator.of(context).pop();
-                  _showMessage('Funcionalidad: Gestión de servidores IPTV');
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.video_settings),
-                title: const Text('Configuración de Reproductor'),
-                subtitle: const Text('Motor, calidad, controles'),
-                onTap: () {
-                  Navigator.of(context).pop();
-                  _showMessage('Funcionalidad: Configuración del reproductor');
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.favorite),
-                title: const Text('Gestión de Favoritos'),
-                subtitle: const Text('Ver y organizar favoritos'),
-                onTap: () {
-                  Navigator.of(context).pop();
-                  _showFavoritesManagement();
-                },
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Cerrar'),
-            ),
-          ],
-        );
-      },
-    );
   }
 
   /// Obtener información de EPG para un canal
