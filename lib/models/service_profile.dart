@@ -1,11 +1,10 @@
-import 'package:equatable/equatable.dart';
 import 'package:isar/isar.dart';
 
 part 'service_profile.g.dart';
 
 /// Perfil de servicio IPTV con configuración Xtream Codes
 @collection
-class ServiceProfile extends Equatable {
+class ServiceProfile {
   Id id = Isar.autoIncrement;
 
   @Index()
@@ -15,17 +14,15 @@ class ServiceProfile extends Equatable {
   final String password;
   final String? token;
   final DateTime? tokenExpiry;
-  
-  @enumerated
-  final PlayerEngine preferredEngine;
+  final String? preferredEngine;
 
-  const ServiceProfile({
+  ServiceProfile({
     required this.baseUrl,
     required this.username,
     required this.password,
     this.token,
     this.tokenExpiry,
-    this.preferredEngine = PlayerEngine.media3,
+    this.preferredEngine,
   });
 
   /// Constructor desde JSON
@@ -38,10 +35,7 @@ class ServiceProfile extends Equatable {
       tokenExpiry: json['token_expiry'] != null 
           ? DateTime.parse(json['token_expiry'] as String)
           : null,
-      preferredEngine: PlayerEngine.values.firstWhere(
-        (e) => e.name == json['preferred_engine'],
-        orElse: () => PlayerEngine.media3,
-      ),
+      preferredEngine: json['preferred_engine'] as String?,
     );
   }
 
@@ -53,7 +47,7 @@ class ServiceProfile extends Equatable {
       'password': password,
       'token': token,
       'token_expiry': tokenExpiry?.toIso8601String(),
-      'preferred_engine': preferredEngine.name,
+      'preferred_engine': preferredEngine,
     };
   }
 
@@ -64,12 +58,16 @@ class ServiceProfile extends Equatable {
   }
 
   /// Método para renovar token si es necesario
-  Future<ServiceProfile> refreshTokenIfNeeded() async {
-    if (!needsTokenRefresh) return this;
+  Future<void> refreshTokenIfNeeded() async {
+    if (!needsTokenRefresh) return;
     
-    // El refresh real del token se hace en XtreamService
-    // Este método solo verifica la necesidad
-    return copyWith(token: null, tokenExpiry: null);
+    try {
+      // TODO: Llamar a XtreamCode.instance.client.serverInformation()
+      // Implementación pendiente tras configuración del servicio
+    } catch (e) {
+      // Manejar errores si es necesario
+      rethrow;
+    }
   }
 
   /// Crear copia con campos actualizados
@@ -79,7 +77,7 @@ class ServiceProfile extends Equatable {
     String? password,
     String? token,
     DateTime? tokenExpiry,
-    PlayerEngine? preferredEngine,
+    String? preferredEngine,
   }) {
     return ServiceProfile(
       baseUrl: baseUrl ?? this.baseUrl,
@@ -91,19 +89,28 @@ class ServiceProfile extends Equatable {
     );
   }
 
+  /// Overrides para equals y hashCode
   @override
-  List<Object?> get props => [
-        baseUrl,
-        username,
-        password,
-        token,
-        tokenExpiry,
-        preferredEngine,
-      ];
-}
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    return other is ServiceProfile &&
+        other.baseUrl == baseUrl &&
+        other.username == username &&
+        other.password == password &&
+        other.token == token &&
+        other.tokenExpiry == tokenExpiry &&
+        other.preferredEngine == preferredEngine;
+  }
 
-/// Motores de reproducción disponibles
-enum PlayerEngine {
-  media3,  // video_player con ExoPlayer
-  vlc,     // flutter_vlc_player
+  @override
+  int get hashCode {
+    return Object.hash(
+      baseUrl,
+      username,
+      password,
+      token,
+      tokenExpiry,
+      preferredEngine,
+    );
+  }
 }
