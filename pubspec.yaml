@@ -8,7 +8,6 @@ environment:
   sdk: ^3.8.1
 
 dependencies:
-  http: ^0.13.5
   flutter:
     sdk: flutter
   flutter_localizations:
@@ -30,23 +29,19 @@ dependencies:
   
   # Cache de imágenes
   cached_network_image: ^3.4.1
-  
+
   # Reproductor de video
   video_player: ^2.9.2
   chewie: ^1.8.5
 
   # Motores de reproducción dual: ExoPlayer (video_player) y libVLC
-  flutter_vlc_player: ^8.0.0
-
-  # Almacenamiento local y seguro
+  flutter_vlc_player: ^7.4.3
   hive: ^2.2.3
   hive_flutter: ^1.1.0
   isar: ^3.1.0+1
   isar_flutter_libs: ^3.1.0+1
   flutter_secure_storage: ^8.0.0
   path_provider: ^2.0.11
-  
-  # Gestión de cache
   flutter_cache_manager: ^3.3.1
 
   # Gestión de estado (BLoC)
