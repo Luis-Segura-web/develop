@@ -438,7 +438,7 @@ class _LiveChannelsScreenState extends State<LiveChannelsScreen> {
             mainAxisSize: MainAxisSize.min,
             children: [
               ListTile(
-                leading: const Icon(Icons.server),
+                leading: const Icon(Icons.dns),
                 title: const Text('Gestión de Servidores'),
                 subtitle: const Text('Configurar conexiones IPTV'),
                 onTap: () {

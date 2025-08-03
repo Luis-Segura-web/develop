@@ -53,13 +53,13 @@ class _CategoryListState extends State<CategoryList> {
     return Container(
       color: Colors.grey[900],
       child: ListView.builder(
-        itemCount: categories.length,
+      itemCount: widget.categories.length,
         itemBuilder: (context, index) {
-          final category = categories[index];
+          final category = widget.categories[index];
           final categoryId = category['category_id']?.toString();
           final categoryName = category['category_name'] ?? 'Categoría sin nombre';
-          final channels = channelsByCategory[categoryId] ?? [];
-          final isExpanded = expandedCategoryId == categoryId;
+          final channels = widget.channelsByCategory[categoryId] ?? [];
+          final isExpanded = widget.expandedCategoryId == categoryId;
 
           return Container(
             margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
@@ -71,7 +71,7 @@ class _CategoryListState extends State<CategoryList> {
               children: [
                 // Header de la categoría
                 InkWell(
-                  onTap: () => onCategoryExpanded(categoryId),
+                onTap: () => widget.onCategoryExpanded(categoryId),
                   borderRadius: BorderRadius.circular(8),
                   child: Container(
                     padding: const EdgeInsets.all(16),
@@ -140,7 +140,7 @@ class _CategoryListState extends State<CategoryList> {
   }
 
   Widget _buildChannelTile(BuildContext context, Map<String, dynamic> channel) {
-    final isSelected = selectedChannel?['stream_id'] == channel['stream_id'];
+    final isSelected = widget.selectedChannel?['stream_id'] == channel['stream_id'];
     
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 1),
@@ -235,7 +235,7 @@ class _CategoryListState extends State<CategoryList> {
             minHeight: 40,
           ),
         ),
-        onTap: () => onChannelSelected(channel),
+        onTap: () => widget.onChannelSelected(channel),
       ),
     );
   }
