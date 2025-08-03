@@ -1,10 +1,20 @@
 import 'package:isar/isar.dart';
 import 'package:path_provider/path_provider.dart';
 import '../models/service_profile.dart';
+import '../core/constants.dart';
 
 /// Repositorio para gestionar perfiles de servicio usando Isar
 class ProfileRepository {
+  static ProfileRepository? _instance;
   static Isar? _isar;
+  
+  ProfileRepository._internal();
+  
+  /// Obtener instancia singleton
+  static ProfileRepository get instance {
+    _instance ??= ProfileRepository._internal();
+    return _instance!;
+  }
   
   /// Inicializar base de datos Isar
   static Future<void> initialize() async {
@@ -20,7 +30,7 @@ class ProfileRepository {
   }
 
   /// Obtener instancia de Isar
-  static Isar get _instance {
+  static Isar get _instance_isar {
     if (_isar == null) {
       throw Exception('ProfileRepository no inicializado. Llame a initialize() primero.');
     }
@@ -30,7 +40,7 @@ class ProfileRepository {
   /// Leer todos los perfiles
   Future<List<ServiceProfile>> readProfiles() async {
     try {
-      return await _instance.serviceProfiles.where().findAll();
+      return await _instance_isar.serviceProfiles.where().findAll();
     } catch (e) {
       throw Exception('Error al leer perfiles: $e');
     }
@@ -39,8 +49,8 @@ class ProfileRepository {
   /// Guardar perfil
   Future<void> saveProfile(ServiceProfile profile) async {
     try {
-      await _instance.writeTxn(() async {
-        await _instance.serviceProfiles.put(profile);
+      await _instance_isar.writeTxn(() async {
+        await _instance_isar.serviceProfiles.put(profile);
       });
     } catch (e) {
       throw Exception('Error al guardar perfil: $e');
@@ -50,8 +60,8 @@ class ProfileRepository {
   /// Eliminar perfil
   Future<void> deleteProfile(int profileId) async {
     try {
-      await _instance.writeTxn(() async {
-        await _instance.serviceProfiles.delete(profileId);
+      await _instance_isar.writeTxn(() async {
+        await _instance_isar.serviceProfiles.delete(profileId);
       });
     } catch (e) {
       throw Exception('Error al eliminar perfil: $e');
@@ -61,7 +71,7 @@ class ProfileRepository {
   /// Buscar perfil por URL base
   Future<ServiceProfile?> findProfileByBaseUrl(String baseUrl) async {
     try {
-      return await _instance.serviceProfiles
+      return await _instance_isar.serviceProfiles
           .where()
           .baseUrlEqualTo(baseUrl)
           .findFirst();
@@ -73,7 +83,7 @@ class ProfileRepository {
   /// Buscar perfil por ID
   Future<ServiceProfile?> findProfileById(int profileId) async {
     try {
-      return await _instance.serviceProfiles.get(profileId);
+      return await _instance_isar.serviceProfiles.get(profileId);
     } catch (e) {
       throw Exception('Error al buscar perfil por ID: $e');
     }
@@ -87,7 +97,8 @@ class ProfileRepository {
         throw Exception('Perfil no encontrado');
       }
       
-      final updatedProfile = profile.copyWith(preferredEngine: engine);
+      final engineString = engine == PlayerEngine.vlc ? 'vlc' : 'media3';
+      final updatedProfile = profile.copyWith(preferredEngine: engineString);
       await saveProfile(updatedProfile);
     } catch (e) {
       throw Exception('Error al actualizar motor preferido: $e');
@@ -146,7 +157,7 @@ class ProfileRepository {
   /// Verificar si existe un perfil con la misma configuración
   Future<bool> profileExists(String baseUrl, String username) async {
     try {
-      final existingProfile = await _instance.serviceProfiles
+      final existingProfile = await _instance_isar.serviceProfiles
           .where()
           .baseUrlEqualTo(baseUrl)
           .findFirst();
@@ -170,10 +181,10 @@ class ProfileRepository {
           p.tokenExpiry!.isBefore(DateTime.now())
       ).length;
       stats['media3_engine'] = profiles.where((p) => 
-          p.preferredEngine == PlayerEngine.media3
+          p.preferredEngine == 'media3'
       ).length;
       stats['vlc_engine'] = profiles.where((p) => 
-          p.preferredEngine == PlayerEngine.vlc
+          p.preferredEngine == 'vlc'
       ).length;
       
       return stats;
@@ -191,8 +202,8 @@ class ProfileRepository {
   /// Limpiar toda la base de datos (solo para testing)
   Future<void> clearAll() async {
     try {
-      await _instance.writeTxn(() async {
-        await _instance.serviceProfiles.clear();
+      await _instance_isar.writeTxn(() async {
+        await _instance_isar.serviceProfiles.clear();
       });
     } catch (e) {
       throw Exception('Error al limpiar base de datos: $e');

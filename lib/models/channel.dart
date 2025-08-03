@@ -1,13 +1,12 @@
-import 'package:equatable/equatable.dart';
 import 'package:isar/isar.dart';
 
 part 'channel.g.dart';
 
 /// Canal de televisión en vivo
 @collection
-class Channel extends Equatable {
+class Channel {
   Id id = Isar.autoIncrement;
-  
+
   @Index()
   final int streamId;
   final String name;
@@ -17,11 +16,12 @@ class Channel extends Equatable {
   final bool hasArchive;
   final DateTime? created;
   final DateTime? addedOn;
-  
+
   // Cache TTL
   final DateTime cacheExpiry;
 
-  const Channel({
+  // No const: Isar id is not final
+  Channel({
     required this.streamId,
     required this.name,
     required this.streamIcon,
@@ -64,15 +64,39 @@ class Channel extends Equatable {
     };
   }
 
+  Channel copyWith({
+    int? streamId,
+    String? name,
+    String? streamIcon,
+    int? categoryId,
+    String? streamType,
+    bool? hasArchive,
+    DateTime? created,
+    DateTime? addedOn,
+    DateTime? cacheExpiry,
+  }) {
+    return Channel(
+      streamId: streamId ?? this.streamId,
+      name: name ?? this.name,
+      streamIcon: streamIcon ?? this.streamIcon,
+      categoryId: categoryId ?? this.categoryId,
+      streamType: streamType ?? this.streamType,
+      hasArchive: hasArchive ?? this.hasArchive,
+      created: created ?? this.created,
+      addedOn: addedOn ?? this.addedOn,
+      cacheExpiry: cacheExpiry ?? this.cacheExpiry,
+    );
+  }
+
   @override
-  List<Object?> get props => [
-        streamId,
-        name,
-        streamIcon,
-        categoryId,
-        streamType,
-        hasArchive,
-        created,
-        addedOn,
-      ];
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    return other is Channel && other.streamId == streamId;
+  }
+
+  @override
+  int get hashCode => streamId.hashCode;
+
+  @ignore
+  List<Object?> get props => [streamId, name, streamIcon, categoryId, streamType, hasArchive, created, addedOn, cacheExpiry];
 }

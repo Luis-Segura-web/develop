@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:video_player/video_player.dart';
-import 'package:flutter_vlc_player/flutter_vlc_player.dart';
+// import 'package:flutter_vlc_player/flutter_vlc_player.dart'; // Disabled due to SDK compatibility
 import '../models/service_profile.dart';
 import '../models/stream_item.dart';
 import '../player/player_selector.dart';
 import '../services/stream_url_builder.dart';
+import '../core/constants.dart';
 
 /// Pantalla principal del reproductor con UI en español latino
 class PlayerScreen extends StatefulWidget {
@@ -116,6 +117,8 @@ class _PlayerScreenState extends State<PlayerScreen> {
           break;
           
         case PlayerEngine.vlc:
+          // VLC player disabled due to SDK compatibility
+          /*
           final controller = _playerSelector.activeController as VlcPlayerController?;
           if (controller != null && controller.value.isInitialized) {
             // VLC puede proporcionar información más detallada del stream
@@ -127,6 +130,10 @@ class _PlayerScreenState extends State<PlayerScreen> {
             _currentResolution = 'Detectando...';
             _currentCodec = 'N/A';
           }
+          */
+          _currentBitrate = 'N/A';
+          _currentResolution = 'N/A';
+          _currentCodec = 'N/A';
           break;
       }
     });
@@ -304,19 +311,12 @@ class _PlayerScreenState extends State<PlayerScreen> {
 
   /// Construir reproductor VLC
   Widget _buildVLCPlayer() {
-    final controller = _playerSelector.activeController as VlcPlayerController?;
-    
-    if (controller == null) {
-      return const Center(
-        child: CircularProgressIndicator(color: Colors.white),
-      );
-    }
-
-    return VlcPlayer(
-      controller: controller,
-      aspectRatio: 16 / 9,
-      placeholder: const Center(
-        child: CircularProgressIndicator(color: Colors.white),
+    // VLC player disabled due to SDK compatibility
+    return const Center(
+      child: Text(
+        'Reproductor VLC no disponible\n(Incompatibilidad de SDK)',
+        textAlign: TextAlign.center,
+        style: TextStyle(color: Colors.white),
       ),
     );
   }
@@ -329,14 +329,10 @@ class _PlayerScreenState extends State<PlayerScreen> {
         children: [
           // Controles superiores
           _buildTopControls(),
-          
           const Spacer(),
-          
           // Controles centrales
           _buildCenterControls(),
-          
           const Spacer(),
-          
           // Controles inferiores
           _buildBottomControls(),
         ],

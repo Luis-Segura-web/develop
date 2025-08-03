@@ -1,13 +1,12 @@
-import 'package:equatable/equatable.dart';
 import 'package:isar/isar.dart';
 
 part 'vod_item.g.dart';
 
 /// Elemento de Video on Demand
 @collection
-class VodItem extends Equatable {
+class VodItem {
   Id id = Isar.autoIncrement;
-  
+
   @Index()
   final int streamId;
   final String name;
@@ -20,11 +19,12 @@ class VodItem extends Equatable {
   final double rating;
   final int categoryId;
   final String containerExtension;
-  
+
   // Cache TTL
   final DateTime cacheExpiry;
 
-  const VodItem({
+  // No const: Isar id is not final
+  VodItem({
     required this.streamId,
     required this.name,
     required this.streamIcon,
@@ -74,18 +74,45 @@ class VodItem extends Equatable {
     };
   }
 
+  VodItem copyWith({
+    int? streamId,
+    String? name,
+    String? streamIcon,
+    String? plot,
+    String? director,
+    String? cast,
+    String? genre,
+    DateTime? releaseDate,
+    double? rating,
+    int? categoryId,
+    String? containerExtension,
+    DateTime? cacheExpiry,
+  }) {
+    return VodItem(
+      streamId: streamId ?? this.streamId,
+      name: name ?? this.name,
+      streamIcon: streamIcon ?? this.streamIcon,
+      plot: plot ?? this.plot,
+      director: director ?? this.director,
+      cast: cast ?? this.cast,
+      genre: genre ?? this.genre,
+      releaseDate: releaseDate ?? this.releaseDate,
+      rating: rating ?? this.rating,
+      categoryId: categoryId ?? this.categoryId,
+      containerExtension: containerExtension ?? this.containerExtension,
+      cacheExpiry: cacheExpiry ?? this.cacheExpiry,
+    );
+  }
+
   @override
-  List<Object?> get props => [
-        streamId,
-        name,
-        streamIcon,
-        plot,
-        director,
-        cast,
-        genre,
-        releaseDate,
-        rating,
-        categoryId,
-        containerExtension,
-      ];
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    return other is VodItem && other.streamId == streamId;
+  }
+
+  @override
+  int get hashCode => streamId.hashCode;
+
+  @ignore
+  List<Object?> get props => [streamId, name, streamIcon, plot, director, cast, genre, releaseDate, rating, categoryId, containerExtension, cacheExpiry];
 }

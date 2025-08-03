@@ -1,13 +1,12 @@
-import 'package:equatable/equatable.dart';
 import 'package:isar/isar.dart';
 
 part 'series_item.g.dart';
 
 /// Elemento de Serie
 @collection
-class SeriesItem extends Equatable {
+class SeriesItem {
   Id id = Isar.autoIncrement;
-  
+
   @Index()
   final int seriesId;
   final String name;
@@ -20,11 +19,12 @@ class SeriesItem extends Equatable {
   final double rating;
   final int categoryId;
   final int episodeRunTime;
-  
+
   // Cache TTL
   final DateTime cacheExpiry;
 
-  const SeriesItem({
+  // No const: Isar id is not final
+  SeriesItem({
     required this.seriesId,
     required this.name,
     required this.cover,
@@ -74,18 +74,45 @@ class SeriesItem extends Equatable {
     };
   }
 
+  SeriesItem copyWith({
+    int? seriesId,
+    String? name,
+    String? cover,
+    String? plot,
+    String? cast,
+    String? director,
+    String? genre,
+    DateTime? releaseDate,
+    double? rating,
+    int? categoryId,
+    int? episodeRunTime,
+    DateTime? cacheExpiry,
+  }) {
+    return SeriesItem(
+      seriesId: seriesId ?? this.seriesId,
+      name: name ?? this.name,
+      cover: cover ?? this.cover,
+      plot: plot ?? this.plot,
+      cast: cast ?? this.cast,
+      director: director ?? this.director,
+      genre: genre ?? this.genre,
+      releaseDate: releaseDate ?? this.releaseDate,
+      rating: rating ?? this.rating,
+      categoryId: categoryId ?? this.categoryId,
+      episodeRunTime: episodeRunTime ?? this.episodeRunTime,
+      cacheExpiry: cacheExpiry ?? this.cacheExpiry,
+    );
+  }
+
   @override
-  List<Object?> get props => [
-        seriesId,
-        name,
-        cover,
-        plot,
-        cast,
-        director,
-        genre,
-        releaseDate,
-        rating,
-        categoryId,
-        episodeRunTime,
-      ];
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    return other is SeriesItem && other.seriesId == seriesId;
+  }
+
+  @override
+  int get hashCode => seriesId.hashCode;
+
+  @ignore
+  List<Object?> get props => [seriesId, name, cover, plot, cast, director, genre, releaseDate, rating, categoryId, episodeRunTime, cacheExpiry];
 }

@@ -5,7 +5,7 @@ publish_to: 'none'
 version: 1.0.0+1
 
 environment:
-  sdk: ^3.8.1
+  sdk: ^3.5.0
 
 dependencies:
   flutter:
@@ -18,11 +18,11 @@ dependencies:
   xtream_code_client: ^1.5.0
   
   # HTTP y conectividad
-  http: ^1.2.2
-  dio: ^5.7.0
+  http: ^1.4.0
+  dio: ^5.8.0
   
   # Gestión de estado simple
-  equatable: ^2.0.5
+  equatable: ^2.0.7
   
   # Almacenamiento local básico
   shared_preferences: ^2.3.2
@@ -31,18 +31,18 @@ dependencies:
   cached_network_image: ^3.4.1
 
   # Reproductor de video
-  video_player: ^2.9.2
-  chewie: ^1.8.5
+  video_player: ^2.9.5
+  chewie: ^1.10.0
 
   # Motores de reproducción dual: ExoPlayer (video_player) y libVLC
-  flutter_vlc_player: ^7.4.3
+  # flutter_vlc_player: ^7.4.3  # Disabled due to SDK version incompatibility
   hive: ^2.2.3
   hive_flutter: ^1.1.0
   isar: ^3.1.0+1
   isar_flutter_libs: ^3.1.0+1
-  flutter_secure_storage: ^8.0.0
-  path_provider: ^2.0.11
-  flutter_cache_manager: ^3.3.1
+  flutter_secure_storage: ^8.1.0
+  path_provider: ^2.1.5
+  flutter_cache_manager: ^3.4.1
 
   # Gestión de estado (BLoC)
   flutter_bloc: ^8.1.1
@@ -56,6 +56,9 @@ dev_dependencies:
   flutter_lints: ^5.0.0
   isar_generator: ^3.1.0+1
   build_runner: ^2.4.13
+
+dependency_overrides:
+  shared_preferences_android: 2.3.2
 
 flutter:
   uses-material-design: true

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../models/service_profile.dart';
 import '../models/stream_item.dart';
-import '../models/channel.dart';
+import '../models/channel.dart' as app;
 import '../models/vod_item.dart';
 import '../models/series_item.dart';
 import '../services/xtream_service.dart';
@@ -103,7 +103,7 @@ class _StreamsListScreenState extends State<StreamsListScreen> {
   }
 
   /// Convertir Channel a StreamItem
-  LiveStreamItem _channelToStreamItem(Channel channel) {
+  LiveStreamItem _channelToStreamItem(app.Channel channel) {
     return LiveStreamItem(
       streamId: channel.streamId,
       name: channel.name,

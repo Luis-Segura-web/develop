@@ -47,27 +47,9 @@ class CacheManager {
 
   /// Inicializar gestores de cache para imágenes y video
   Future<void> _initializeCacheManagers() async {
-    final cacheDir = await getTemporaryDirectory();
+    _imageCacheManager = DefaultCacheManager();
     
-    _imageCacheManager = DefaultCacheManager(
-      Config(
-        'image_cache',
-        stalePeriod: const Duration(days: 7),
-        maxNrOfCacheObjects: 1000,
-        repo: JsonCacheInfoRepository(databaseName: 'image_cache'),
-        fileService: HttpFileService(),
-      ),
-    );
-    
-    _videoCacheManager = DefaultCacheManager(
-      Config(
-        'video_cache',
-        stalePeriod: const Duration(hours: 2),
-        maxNrOfCacheObjects: 50,
-        repo: JsonCacheInfoRepository(databaseName: 'video_cache'),
-        fileService: HttpFileService(),
-      ),
-    );
+    _videoCacheManager = DefaultCacheManager();
   }
 
   /// Obtener instancia de Isar
@@ -129,15 +111,15 @@ class CacheManager {
       }
       
       // Buscar en base de datos
-      Query<Channel> query = _isarInstance.channels
-          .where()
-          .cacheExpiryGreaterThan(DateTime.now());
+      final allChannels = await _isarInstance.channels.where().findAll();
+      final now = DateTime.now();
       
-      if (categoryId != null) {
-        query = query.categoryIdEqualTo(categoryId);
-      }
-      
-      final channels = await query.findAll();
+      // Filtrar por cache válido y categoría
+      final channels = allChannels.where((channel) {
+        final isNotExpired = channel.cacheExpiry.isAfter(now);
+        final matchesCategory = categoryId == null || channel.categoryId == categoryId;
+        return isNotExpired && matchesCategory;
+      }).toList();
       
       // Guardar en memoria
       if (categoryId != null) {
@@ -158,11 +140,12 @@ class CacheManager {
       if (memoryChannel != null) return memoryChannel;
       
       // Buscar en base de datos
-      final channel = await _isarInstance.channels
-          .where()
-          .streamIdEqualTo(streamId)
-          .cacheExpiryGreaterThan(DateTime.now())
-          .findFirst();
+      final allChannels = await _isarInstance.channels.where().findAll();
+      final now = DateTime.now();
+      
+      final channel = allChannels.where((ch) =>
+          ch.streamId == streamId && ch.cacheExpiry.isAfter(now)
+      ).firstOrNull;
       
       if (channel != null) {
         putMemory('channel_$streamId', channel);
@@ -194,15 +177,14 @@ class CacheManager {
   /// Obtener elementos VOD desde cache
   Future<List<VodItem>> getVodItems({int? categoryId}) async {
     try {
-      Query<VodItem> query = _isarInstance.vodItems
-          .where()
-          .cacheExpiryGreaterThan(DateTime.now());
+      final allItems = await _isarInstance.vodItems.where().findAll();
+      final now = DateTime.now();
       
-      if (categoryId != null) {
-        query = query.categoryIdEqualTo(categoryId);
-      }
-      
-      return await query.findAll();
+      return allItems.where((item) {
+        final isNotExpired = item.cacheExpiry.isAfter(now);
+        final matchesCategory = categoryId == null || item.categoryId == categoryId;
+        return isNotExpired && matchesCategory;
+      }).toList();
     } catch (e) {
       throw Exception('Error al obtener VOD desde cache: $e');
     }
@@ -228,15 +210,14 @@ class CacheManager {
   /// Obtener series desde cache
   Future<List<SeriesItem>> getSeriesItems({int? categoryId}) async {
     try {
-      Query<SeriesItem> query = _isarInstance.seriesItems
-          .where()
-          .cacheExpiryGreaterThan(DateTime.now());
+      final allItems = await _isarInstance.seriesItems.where().findAll();
+      final now = DateTime.now();
       
-      if (categoryId != null) {
-        query = query.categoryIdEqualTo(categoryId);
-      }
-      
-      return await query.findAll();
+      return allItems.where((item) {
+        final isNotExpired = item.cacheExpiry.isAfter(now);
+        final matchesCategory = categoryId == null || item.categoryId == categoryId;
+        return isNotExpired && matchesCategory;
+      }).toList();
     } catch (e) {
       throw Exception('Error al obtener series desde cache: $e');
     }
@@ -248,7 +229,7 @@ class CacheManager {
   Future<void> putEpgEntries(List<EpgEntry> entries) async {
     try {
       await _isarInstance.writeTxn(() async {
-        await _isarInstance.epgEntries.putAll(entries);
+        await _isarInstance.epgEntrys.putAll(entries);
       });
     } catch (e) {
       throw Exception('Error al guardar EPG en cache: $e');
@@ -258,12 +239,14 @@ class CacheManager {
   /// Obtener entradas EPG desde cache
   Future<List<EpgEntry>> getEpgEntries(int channelId) async {
     try {
-      return await _isarInstance.epgEntries
-          .where()
-          .channelIdEqualTo(channelId)
-          .cacheExpiryGreaterThan(DateTime.now())
-          .sortByStartTime()
-          .findAll();
+      final allEntries = await _isarInstance.epgEntrys.where().findAll();
+      final now = DateTime.now();
+      
+      return allEntries.where((entry) {
+        final isNotExpired = entry.cacheExpiry.isAfter(now);
+        final matchesChannel = entry.channelId == channelId;
+        return isNotExpired && matchesChannel;
+      }).toList()..sort((a, b) => a.startTime.compareTo(b.startTime));
     } catch (e) {
       throw Exception('Error al obtener EPG desde cache: $e');
     }
@@ -317,29 +300,36 @@ class CacheManager {
       final now = DateTime.now();
       
       await _isarInstance.writeTxn(() async {
-        // Limpiar canales expirados
-        await _isarInstance.channels
-            .where()
-            .cacheExpiryLessThan(now)
-            .deleteAll();
+        // Obtener todos los elementos y filtrar los expirados
+        final expiredChannels = await _isarInstance.channels.where().findAll();
+        final expiredChannelIds = expiredChannels
+            .where((ch) => ch.cacheExpiry.isBefore(now))
+            .map((ch) => ch.id)
+            .toList();
         
-        // Limpiar VOD expirado
-        await _isarInstance.vodItems
-            .where()
-            .cacheExpiryLessThan(now)
-            .deleteAll();
+        final expiredVodItems = await _isarInstance.vodItems.where().findAll();
+        final expiredVodIds = expiredVodItems
+            .where((item) => item.cacheExpiry.isBefore(now))
+            .map((item) => item.id)
+            .toList();
         
-        // Limpiar series expiradas
-        await _isarInstance.seriesItems
-            .where()
-            .cacheExpiryLessThan(now)
-            .deleteAll();
+        final expiredSeriesItems = await _isarInstance.seriesItems.where().findAll();
+        final expiredSeriesIds = expiredSeriesItems
+            .where((item) => item.cacheExpiry.isBefore(now))
+            .map((item) => item.id)
+            .toList();
         
-        // Limpiar EPG expirado
-        await _isarInstance.epgEntries
-            .where()
-            .cacheExpiryLessThan(now)
-            .deleteAll();
+        final expiredEpgEntries = await _isarInstance.epgEntrys.where().findAll();
+        final expiredEpgIds = expiredEpgEntries
+            .where((entry) => entry.cacheExpiry.isBefore(now))
+            .map((entry) => entry.id)
+            .toList();
+        
+        // Eliminar elementos expirados
+        await _isarInstance.channels.deleteAll(expiredChannelIds);
+        await _isarInstance.vodItems.deleteAll(expiredVodIds);
+        await _isarInstance.seriesItems.deleteAll(expiredSeriesIds);
+        await _isarInstance.epgEntrys.deleteAll(expiredEpgIds);
       });
       
       // Limpiar cache de imágenes
@@ -362,7 +352,7 @@ class CacheManager {
       stats['channels'] = await _isarInstance.channels.count();
       stats['vod_items'] = await _isarInstance.vodItems.count();
       stats['series_items'] = await _isarInstance.seriesItems.count();
-      stats['epg_entries'] = await _isarInstance.epgEntries.count();
+      stats['epg_entries'] = await _isarInstance.epgEntrys.count();
       
       return stats;
     } catch (e) {
@@ -395,30 +385,39 @@ class CacheManager {
 }
 
 /// Implementación de LRU Map
-class LRUMap<K, V> extends LinkedHashMap<K, V> {
+class LRUMap<K, V> {
   final int maximumSize;
+  final LinkedHashMap<K, V> _map = LinkedHashMap<K, V>();
 
   LRUMap({required this.maximumSize});
 
-  @override
   V? operator [](Object? key) {
-    final value = super[key];
+    final value = _map.remove(key);
     if (value != null && key != null) {
-      // Mover al final para LRU
-      super.remove(key);
-      super[key as K] = value;
+      _map[key as K] = value; // Move to end for LRU
     }
     return value;
   }
 
-  @override
   void operator []=(K key, V value) {
-    super.remove(key);
-    super[key] = value;
+    _map.remove(key);
+    _map[key] = value;
     
-    // Remover elementos más antiguos si excede el tamaño máximo
-    while (length > maximumSize) {
-      remove(keys.first);
+    // Remove oldest entries if exceeding maximum size
+    while (_map.length > maximumSize) {
+      _map.remove(_map.keys.first);
     }
   }
+
+  bool containsKey(Object? key) => _map.containsKey(key);
+  
+  V? remove(Object? key) => _map.remove(key);
+  
+  void clear() => _map.clear();
+  
+  int get length => _map.length;
+  
+  bool get isEmpty => _map.isEmpty;
+  
+  bool get isNotEmpty => _map.isNotEmpty;
 }

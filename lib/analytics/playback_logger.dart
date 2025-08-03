@@ -2,7 +2,7 @@ import 'dart:io';
 import 'dart:convert';
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../models/service_profile.dart';
+import '../core/constants.dart';
 
 /// Logger de analítica para eventos de reproducción
 class PlaybackLogger {
@@ -278,11 +278,11 @@ class PlaybackLogger {
     print('🎬 PLAYBACK EVENT: ${event['event']}');
     print('   Details: $event');
     
-    // Implementar envío a servicio de analytics
-    await _sendToAnalyticsService(event);
+    // Implementar envío a servicio de analytics (fire and forget)
+    _sendToAnalyticsService(event);
     
-    // Guardar en log local para backup y debugging
-    await _saveToLocalLog(event);
+    // Guardar en log local para backup y debugging (fire and forget)
+    _saveToLocalLog(event);
   }
 
   /// Enviar evento a servicio de analytics
@@ -474,7 +474,7 @@ class PlaybackLogger {
                 final logEntry = json.decode(line) as Map<String, dynamic>;
                 final logTime = DateTime.parse(logEntry['timestamp'] ?? '');
                 
-                if (logTime.isAfter(startDate!) && logTime.isBefore(endDate!)) {
+                if (logTime.isAfter(startDate) && logTime.isBefore(endDate)) {
                   exportData.add(logEntry);
                 }
               } catch (e) {
@@ -488,7 +488,7 @@ class PlaybackLogger {
       // Agregar logs en memoria si están en el rango
       for (final log in _localLogs) {
         final logTime = DateTime.parse(log['timestamp'] ?? '');
-        if (logTime.isAfter(startDate!) && logTime.isBefore(endDate!)) {
+        if (logTime.isAfter(startDate) && logTime.isBefore(endDate)) {
           exportData.add(log);
         }
       }
